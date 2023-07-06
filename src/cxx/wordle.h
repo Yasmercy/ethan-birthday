@@ -26,15 +26,16 @@ struct Word {
     Word (std::string word, unsigned int length) : word(word), length(length) {}
     Word (std::string word) : word(word), length(word.size()) {}
     // to_json and from_json methods
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Word, id, word, length);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Word, id, word, length);
 };
 
 struct WordHighlight {
     std::vector<State> colors;
-    std::string word;
-};
+    Word word;
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WordHighlight, colors, word);
+    // to-json and from_json methods
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(WordHighlight, colors, word);
+};
 
 bool valid_word(Word guess);
 

@@ -34,5 +34,9 @@ void set_keys() {
 }
 
 int main() {
+    set_keys();
+    svr.Get("/validate", get_valid_word);
+    svr.Get("/colors", get_word_highlights);
 
+    svr.listen("localhost", 8008);
 }

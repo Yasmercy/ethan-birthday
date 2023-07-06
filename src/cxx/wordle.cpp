@@ -29,7 +29,6 @@ std::vector<State> get_color_vec(std::string guess, std::string key, unsigned in
             colors[i] = State::YELLOW;
         }
     }
-
     return colors;
 }
 
@@ -43,7 +42,7 @@ bool valid_word(Word guess) {
 WordHighlight get_colors(Word key, Word guess) {
     return WordHighlight {
         get_color_vec(guess.word, key.word, key.length),
-        guess.word
+        guess
     };
 }
 
