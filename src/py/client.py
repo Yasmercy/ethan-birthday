@@ -1,8 +1,7 @@
 import http.client as cli
-from app import App
 
 # global client connection
-conn = cli.HTTPConnection("localhost:8008")
+conn = cli.HTTPSConnection("localhost:2222")
 
 def valid_word(word):
     conn.request("GET", "/validate", headers={"word": word})

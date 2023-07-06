@@ -1,5 +1,7 @@
 import tkinter as tk
 import itertools as it
+import functools as ft
+import operator
 import client
 from aux import *
 
@@ -100,10 +102,19 @@ class App(tk.Tk):
         # delete
         elif key == 8: # backspace
             self.letter_grid[self.select_row][self.select_col].update_letter(self.canvas, "")
+    
+    def get_word(self):
+        # return the selected word (does not check for selecting)
+        return ft.reduce(operator.add, (letter.letter for letter in self.letter_grid[self.select_row]))
 
     def return_key(self, event):
         # enter --> submit guess (only if word is full)
-        pass
+        if not self.selecting:
+            return
+        word = self.get_word()
+        print(word)
+        print(client.valid_word(word))
+        print(client.get_colors(word))
 
     def select(self, row, col):
         self.selecting = True
@@ -222,4 +233,4 @@ class LetterDisplay:
         canvas.itemconfig(self.widget_ids[1], text=letter)
 
 if __name__ == "__main__":
-    App().start()
+    App().run()

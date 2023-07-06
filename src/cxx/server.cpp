@@ -1,3 +1,4 @@
+#define CPPHTTPLIB_OPENSSL_SUPPORT
 #include <array>
 #include "../../inc/httplib.h"
 #include "../../inc/json.hpp"
@@ -5,7 +6,7 @@
 #include "wordle.h"
 
 using json = nlohmann::json;
-httplib::Server svr;
+httplib::SSLServer svr("~/.ssh/cert.pem", "~/.ssh/key.pem");
 std::array<std::string, 3> keys;
 
 std::string get_key(unsigned int length) {
