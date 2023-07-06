@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/test.dir/test.cpp.o CMakeFiles/test.dir/__/src/wordle.cpp.o CMakeFiles/test.dir/__/src/storage.cpp.o -o ../bin/test  /usr/local/lib/libCatch2Main.a /usr/lib/x86_64-linux-gnu/libsqlite3.so /usr/local/lib/libCatch2.a 
+/usr/bin/c++ CMakeFiles/test.dir/test.cpp.o CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o CMakeFiles/test.dir/__/src/cxx/storage.cpp.o -o ../bin/test  /usr/local/lib/libCatch2Main.a /usr/lib/x86_64-linux-gnu/libsqlite3.so /usr/local/lib/libCatch2.a 

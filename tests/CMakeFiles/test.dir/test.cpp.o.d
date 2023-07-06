@@ -1,7 +1,7 @@
 tests/CMakeFiles/test.dir/test.cpp.o: \
  /home/vagrant/src/ethan_birthday/tests/test.cpp \
  /usr/include/stdc-predef.h \
- /home/vagrant/src/ethan_birthday/tests/../inc/Catch2/src/catch2/catch_test_macros.hpp \
+ /usr/local/include/catch2/catch_test_macros.hpp \
  /usr/local/include/catch2/internal/catch_test_macro_impl.hpp \
  /usr/local/include/catch2/catch_user_config.hpp \
  /usr/local/include/catch2/internal/catch_assertion_handler.hpp \
@@ -203,8 +203,8 @@ tests/CMakeFiles/test.dir/test.cpp.o: \
  /usr/local/include/catch2/internal/catch_test_registry.hpp \
  /usr/local/include/catch2/interfaces/catch_interfaces_test_invoker.hpp \
  /usr/local/include/catch2/internal/catch_preprocessor_remove_parens.hpp \
- /home/vagrant/src/ethan_birthday/tests/../src/wordle.h \
- /home/vagrant/src/ethan_birthday/tests/../src/../inc/json.hpp \
+ /home/vagrant/src/ethan_birthday/tests/../src/cxx/wordle.h \
+ /home/vagrant/src/ethan_birthday/tests/../src/cxx/../../inc/json.hpp \
  /usr/include/c++/11/algorithm /usr/include/c++/11/utility \
  /usr/include/c++/11/bits/stl_relops.h \
  /usr/include/c++/11/bits/ranges_algo.h \

@@ -12,6 +12,8 @@ set(CMAKE_MAKEFILE_DEPENDS
   "CMakeFiles/3.22.1/CMakeSystem.cmake"
   "CMakeLists.txt"
   "src/CMakeLists.txt"
+  "src/cxx/CMakeLists.txt"
+  "src/py/CMakeLists.txt"
   "tests/CMakeLists.txt"
   "/usr/local/lib/cmake/Catch2/Catch2Config.cmake"
   "/usr/local/lib/cmake/Catch2/Catch2ConfigVersion.cmake"
@@ -49,11 +51,13 @@ set(CMAKE_MAKEFILE_OUTPUTS
 set(CMAKE_MAKEFILE_PRODUCTS
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   "src/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "src/cxx/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "src/py/CMakeFiles/CMakeDirectoryInformation.cmake"
   "tests/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "src/CMakeFiles/server.dir/DependInfo.cmake"
+  "src/cxx/CMakeFiles/server.dir/DependInfo.cmake"
   "tests/CMakeFiles/test.dir/DependInfo.cmake"
   )

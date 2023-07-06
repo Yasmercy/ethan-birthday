@@ -1,5 +1,5 @@
-#include "../inc/Catch2/src/catch2/catch_test_macros.hpp"
-#include "../src/wordle.h"
+#include <catch2/catch_test_macros.hpp>
+#include "../src/cxx/wordle.h"
 
 
 TEST_CASE ("wordle-highlights no repeats", "[get_colors]") {
@@ -10,19 +10,19 @@ TEST_CASE ("wordle-highlights no repeats", "[get_colors]") {
     auto venom = get_colors(key, Word("venom", 5));
     sol = {GREEN, GREEN, GREEN, GREEN, GREEN};
     REQUIRE (venom.colors == sol);
-    REQUIRE (venom.word.word == "venom");
+    REQUIRE (venom.word == "venom");
 
     // swear --> [r, r, y, r, r]
     auto swear = get_colors(key, Word("swear", 5));
     sol = {GRAY, GRAY, YELLOW, GRAY, GRAY};
     REQUIRE (swear.colors == sol);  
-    REQUIRE (swear.word.word == "swear");
+    REQUIRE (swear.word == "swear");
 
     // count --> [r, y, r, y, r]
     auto count = get_colors(key, Word("count", 5));
     sol = {GRAY, YELLOW, GRAY, YELLOW, GRAY};
     REQUIRE (count.colors == sol);  
-    REQUIRE (count.word.word == "count");
+    REQUIRE (count.word == "count");
 }
 
 TEST_CASE ("wordle-highlights repeats", "[get_colors]") {
@@ -33,19 +33,19 @@ TEST_CASE ("wordle-highlights repeats", "[get_colors]") {
     auto venom = get_colors(key, Word("venom", 5));
     sol = {GREEN, GREEN, GREEN, GREEN, GREEN};
     REQUIRE (venom.colors == sol);
-    REQUIRE (venom.word.word == "venom");
+    REQUIRE (venom.word == "venom");
 
     // teeth --> [r, g, r, r, r]
     auto teeth = get_colors(key, Word("teeth", 5));
     sol = {GRAY, GREEN, GRAY, GRAY, GRAY};
     REQUIRE (teeth.colors == sol);  
-    REQUIRE (teeth.word.word == "teeth");
+    REQUIRE (teeth.word == "teeth");
 
     // breed --> [r, r, y, r, r]
     auto breed = get_colors(key, Word("breed", 5));
     sol = {GRAY, GRAY, YELLOW, GRAY, GRAY};
     REQUIRE (breed.colors == sol);  
-    REQUIRE (breed.word.word == "breed");
+    REQUIRE (breed.word == "breed");
 }
 
 TEST_CASE ("wordle valid words (5 letters)", "[valid_word]") {

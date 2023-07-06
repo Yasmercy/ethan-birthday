@@ -83,46 +83,46 @@ tests/CMakeFiles/test.dir/test.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/test.cpp.s"
 	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/vagrant/src/ethan_birthday/tests/test.cpp -o CMakeFiles/test.dir/test.cpp.s
 
-tests/CMakeFiles/test.dir/__/src/wordle.cpp.o: tests/CMakeFiles/test.dir/flags.make
-tests/CMakeFiles/test.dir/__/src/wordle.cpp.o: src/wordle.cpp
-tests/CMakeFiles/test.dir/__/src/wordle.cpp.o: tests/CMakeFiles/test.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/vagrant/src/ethan_birthday/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object tests/CMakeFiles/test.dir/__/src/wordle.cpp.o"
-	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT tests/CMakeFiles/test.dir/__/src/wordle.cpp.o -MF CMakeFiles/test.dir/__/src/wordle.cpp.o.d -o CMakeFiles/test.dir/__/src/wordle.cpp.o -c /home/vagrant/src/ethan_birthday/src/wordle.cpp
+tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o: tests/CMakeFiles/test.dir/flags.make
+tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o: src/cxx/wordle.cpp
+tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o: tests/CMakeFiles/test.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/vagrant/src/ethan_birthday/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o"
+	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o -MF CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o.d -o CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o -c /home/vagrant/src/ethan_birthday/src/cxx/wordle.cpp
 
-tests/CMakeFiles/test.dir/__/src/wordle.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test.dir/__/src/wordle.cpp.i"
-	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/vagrant/src/ethan_birthday/src/wordle.cpp > CMakeFiles/test.dir/__/src/wordle.cpp.i
+tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test.dir/__/src/cxx/wordle.cpp.i"
+	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/vagrant/src/ethan_birthday/src/cxx/wordle.cpp > CMakeFiles/test.dir/__/src/cxx/wordle.cpp.i
 
-tests/CMakeFiles/test.dir/__/src/wordle.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/__/src/wordle.cpp.s"
-	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/vagrant/src/ethan_birthday/src/wordle.cpp -o CMakeFiles/test.dir/__/src/wordle.cpp.s
+tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/__/src/cxx/wordle.cpp.s"
+	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/vagrant/src/ethan_birthday/src/cxx/wordle.cpp -o CMakeFiles/test.dir/__/src/cxx/wordle.cpp.s
 
-tests/CMakeFiles/test.dir/__/src/storage.cpp.o: tests/CMakeFiles/test.dir/flags.make
-tests/CMakeFiles/test.dir/__/src/storage.cpp.o: src/storage.cpp
-tests/CMakeFiles/test.dir/__/src/storage.cpp.o: tests/CMakeFiles/test.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/vagrant/src/ethan_birthday/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object tests/CMakeFiles/test.dir/__/src/storage.cpp.o"
-	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT tests/CMakeFiles/test.dir/__/src/storage.cpp.o -MF CMakeFiles/test.dir/__/src/storage.cpp.o.d -o CMakeFiles/test.dir/__/src/storage.cpp.o -c /home/vagrant/src/ethan_birthday/src/storage.cpp
+tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.o: tests/CMakeFiles/test.dir/flags.make
+tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.o: src/cxx/storage.cpp
+tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.o: tests/CMakeFiles/test.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/vagrant/src/ethan_birthday/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.o"
+	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.o -MF CMakeFiles/test.dir/__/src/cxx/storage.cpp.o.d -o CMakeFiles/test.dir/__/src/cxx/storage.cpp.o -c /home/vagrant/src/ethan_birthday/src/cxx/storage.cpp
 
-tests/CMakeFiles/test.dir/__/src/storage.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test.dir/__/src/storage.cpp.i"
-	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/vagrant/src/ethan_birthday/src/storage.cpp > CMakeFiles/test.dir/__/src/storage.cpp.i
+tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/test.dir/__/src/cxx/storage.cpp.i"
+	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/vagrant/src/ethan_birthday/src/cxx/storage.cpp > CMakeFiles/test.dir/__/src/cxx/storage.cpp.i
 
-tests/CMakeFiles/test.dir/__/src/storage.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/__/src/storage.cpp.s"
-	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/vagrant/src/ethan_birthday/src/storage.cpp -o CMakeFiles/test.dir/__/src/storage.cpp.s
+tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/test.dir/__/src/cxx/storage.cpp.s"
+	cd /home/vagrant/src/ethan_birthday/tests && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/vagrant/src/ethan_birthday/src/cxx/storage.cpp -o CMakeFiles/test.dir/__/src/cxx/storage.cpp.s
 
 # Object files for target test
 test_OBJECTS = \
 "CMakeFiles/test.dir/test.cpp.o" \
-"CMakeFiles/test.dir/__/src/wordle.cpp.o" \
-"CMakeFiles/test.dir/__/src/storage.cpp.o"
+"CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o" \
+"CMakeFiles/test.dir/__/src/cxx/storage.cpp.o"
 
 # External object files for target test
 test_EXTERNAL_OBJECTS =
 
 bin/test: tests/CMakeFiles/test.dir/test.cpp.o
-bin/test: tests/CMakeFiles/test.dir/__/src/wordle.cpp.o
-bin/test: tests/CMakeFiles/test.dir/__/src/storage.cpp.o
+bin/test: tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o
+bin/test: tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.o
 bin/test: tests/CMakeFiles/test.dir/build.make
 bin/test: /usr/local/lib/libCatch2Main.a
 bin/test: /usr/lib/x86_64-linux-gnu/libsqlite3.so

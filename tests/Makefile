@@ -130,53 +130,53 @@ test/fast:
 	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/build
 .PHONY : test/fast
 
-__/src/storage.o: __/src/storage.cpp.o
-.PHONY : __/src/storage.o
+__/src/cxx/storage.o: __/src/cxx/storage.cpp.o
+.PHONY : __/src/cxx/storage.o
 
 # target to build an object file
-__/src/storage.cpp.o:
-	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/storage.cpp.o
-.PHONY : __/src/storage.cpp.o
+__/src/cxx/storage.cpp.o:
+	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.o
+.PHONY : __/src/cxx/storage.cpp.o
 
-__/src/storage.i: __/src/storage.cpp.i
-.PHONY : __/src/storage.i
+__/src/cxx/storage.i: __/src/cxx/storage.cpp.i
+.PHONY : __/src/cxx/storage.i
 
 # target to preprocess a source file
-__/src/storage.cpp.i:
-	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/storage.cpp.i
-.PHONY : __/src/storage.cpp.i
+__/src/cxx/storage.cpp.i:
+	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.i
+.PHONY : __/src/cxx/storage.cpp.i
 
-__/src/storage.s: __/src/storage.cpp.s
-.PHONY : __/src/storage.s
+__/src/cxx/storage.s: __/src/cxx/storage.cpp.s
+.PHONY : __/src/cxx/storage.s
 
 # target to generate assembly for a file
-__/src/storage.cpp.s:
-	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/storage.cpp.s
-.PHONY : __/src/storage.cpp.s
+__/src/cxx/storage.cpp.s:
+	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/cxx/storage.cpp.s
+.PHONY : __/src/cxx/storage.cpp.s
 
-__/src/wordle.o: __/src/wordle.cpp.o
-.PHONY : __/src/wordle.o
+__/src/cxx/wordle.o: __/src/cxx/wordle.cpp.o
+.PHONY : __/src/cxx/wordle.o
 
 # target to build an object file
-__/src/wordle.cpp.o:
-	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/wordle.cpp.o
-.PHONY : __/src/wordle.cpp.o
+__/src/cxx/wordle.cpp.o:
+	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.o
+.PHONY : __/src/cxx/wordle.cpp.o
 
-__/src/wordle.i: __/src/wordle.cpp.i
-.PHONY : __/src/wordle.i
+__/src/cxx/wordle.i: __/src/cxx/wordle.cpp.i
+.PHONY : __/src/cxx/wordle.i
 
 # target to preprocess a source file
-__/src/wordle.cpp.i:
-	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/wordle.cpp.i
-.PHONY : __/src/wordle.cpp.i
+__/src/cxx/wordle.cpp.i:
+	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.i
+.PHONY : __/src/cxx/wordle.cpp.i
 
-__/src/wordle.s: __/src/wordle.cpp.s
-.PHONY : __/src/wordle.s
+__/src/cxx/wordle.s: __/src/cxx/wordle.cpp.s
+.PHONY : __/src/cxx/wordle.s
 
 # target to generate assembly for a file
-__/src/wordle.cpp.s:
-	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/wordle.cpp.s
-.PHONY : __/src/wordle.cpp.s
+__/src/cxx/wordle.cpp.s:
+	cd /home/vagrant/src/ethan_birthday && $(MAKE) $(MAKESILENT) -f tests/CMakeFiles/test.dir/build.make tests/CMakeFiles/test.dir/__/src/cxx/wordle.cpp.s
+.PHONY : __/src/cxx/wordle.cpp.s
 
 test.o: test.cpp.o
 .PHONY : test.o
@@ -211,12 +211,12 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... __/src/storage.o"
-	@echo "... __/src/storage.i"
-	@echo "... __/src/storage.s"
-	@echo "... __/src/wordle.o"
-	@echo "... __/src/wordle.i"
-	@echo "... __/src/wordle.s"
+	@echo "... __/src/cxx/storage.o"
+	@echo "... __/src/cxx/storage.i"
+	@echo "... __/src/cxx/storage.s"
+	@echo "... __/src/cxx/wordle.o"
+	@echo "... __/src/cxx/wordle.i"
+	@echo "... __/src/cxx/wordle.s"
 	@echo "... test.o"
 	@echo "... test.i"
 	@echo "... test.s"

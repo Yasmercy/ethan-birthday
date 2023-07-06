@@ -6,4 +6,4 @@ target_link_libraries(test
     PRIVATE Catch2::Catch2WithMain
     PRIVATE SQLite::SQLite3
 )
-target_sources(test PRIVATE ../src/wordle.cpp ../src/storage.cpp)
+target_sources(test PRIVATE ../src/cxx/wordle.cpp ../src/cxx/storage.cpp)

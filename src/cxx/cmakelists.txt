@@ -1,0 +1,8 @@
+find_package(SQLite3)
+
+add_executable(server server.cpp)
+target_sources(server
+    PRIVATE storage.cpp
+    PRIVATE wordle.cpp
+)
+target_link_libraries(server PRIVATE SQLite::SQLite3)
