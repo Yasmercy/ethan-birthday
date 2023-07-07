@@ -1,6 +1,9 @@
 import tkinter as tk
-import itertools as it
+import functools as ft
+import operator
 import client
+from color import *
+from letter import *
 from aux import *
 
 # global variable
@@ -63,7 +66,6 @@ class App(tk.Tk):
     def key_pressed(self, event):
         if not self.selecting:
             return
-
         key = event.keycode
         # esc --> clear selection
         if key == 27: # esc
@@ -94,17 +96,38 @@ class App(tk.Tk):
                     self.select(row, min(self.select_col, self.row_length[row] - 1))
                     break
                 row += 1
-        # a-z --> enter on select
+        # a-z --> enter on select (and move right)
         elif ord('A') <= key <= ord('Z'):
             self.letter_grid[self.select_row][self.select_col].update_letter(self.canvas, chr(key))
+            # duplicate from right
+            col = min(self.row_length[self.select_row] - 1, self.select_col + 1)
+            self.select(self.select_row, col)
+            self.select_col = col
         # delete
-        elif key == 8: # backspace
+        elif key == 8: # backspace (and move left)
             self.letter_grid[self.select_row][self.select_col].update_letter(self.canvas, "")
+            # duplicate from left
+            col = max(0, self.select_col - 1)
+            self.select(self.select_row, col)
+            self.select_col = col
+    
+    def get_word(self):
+        # return the selected word (does not check for selecting)
+        return ft.reduce(operator.add, (letter.letter for letter in self.letter_grid[self.select_row])).lower()
+    
+    def set_row_color(self, row, colors):
+        for col, color in enumerate(colors):
+            self.letter_grid[row][col].set_color(self, color)
 
     def return_key(self, event):
         # enter --> submit guess (only if word is full)
-        pass
-
+        if not self.selecting:
+            return
+        word = self.get_word()
+        if not client.valid_word(word):
+            return
+        self.set_row_color(self.select_row, client.get_colors(word))
+        
     def select(self, row, col):
         self.selecting = True
         # deselect current selection
@@ -157,69 +180,5 @@ class App(tk.Tk):
         except tk.TclError:
             pass
 
-class LetterDisplay:
-    WIDTH = 80  # px
-    HEIGHT = 80 # px
-    
-    def __init__(self, x, y, *, visibility = False, letter = ""):
-        self.visibility = visibility # bool
-        self.letter = letter # str
-        self.center = (x, y) # tuple[int, int]
-        self.selected = False # bool
-
-        self.widget_ids = []
-    
-    def corners(self):
-        """ Returns list[tuple[int, int]] """
-        cx, cy = self.center # center x, y
-        x0, x1 = cx - self.WIDTH / 2, cx + self.WIDTH / 2
-        y0, y1 = cy - self.HEIGHT / 2, cy + self.HEIGHT / 2
-        return [
-            (x0, y0), 
-            (x1, y0), 
-            (x1, y1), 
-            (x0, y1)
-        ]
-
-    def show_display(self, canvas):
-        # create the grid
-        corners = self.corners()
-        square_id = canvas.create_line(*it.chain(*corners), *corners[0])
-
-        # create the letter textbox
-        letter_id = canvas.create_text(*self.center, text=self.letter, font=("Helvetica", "25"))
-
-        # append to widget_ids
-        self.widget_ids.append(square_id)
-        self.widget_ids.append(letter_id)
-    
-    def hide_display(self, canvas):
-        for id in self.widget_ids:
-            canvas.delete(id)
-
-    def toggle_display(self, canvas):
-        self.visibility = not self.visibility
-        if self.visibility:
-            self.show_display(canvas)
-        else:
-            self.hide_display(canvas)
-
-    def select(self, canvas):
-        self.selected = True
-        if not self.visibility:
-            return
-        # move border to front
-        canvas.tag_raise(self.widget_ids[0], 'all')
-        # highlight border
-        canvas.itemconfig(self.widget_ids[0], fill="orange")
-
-    def deselect(self, canvas):
-        canvas.itemconfig(self.widget_ids[0], fill="black")
-        self.selected = False
-
-    def update_letter(self, canvas, letter):
-        self.letter = letter
-        canvas.itemconfig(self.widget_ids[1], text=letter)
-
 if __name__ == "__main__":
-    App().start()
+    App().run()
