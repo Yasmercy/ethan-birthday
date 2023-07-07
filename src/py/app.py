@@ -23,15 +23,18 @@ class App(tk.Tk):
         # instance variables
         self.letter_grid = ... # 6x8 2d array of letter displays
         self.visibile_word_rows = [0, 2, 4] # array of row indices from [0, 6)
-        self.row_length = [5, 0, 7, 0, 8, 0] # array of row lengths from [0, 8]
+        self.start_row_length = [5, 0, 7, 0, 8, 0] # array of row lengths from [0, 8]
+        self.row_length = self.start_row_length # array of row lengths from [0, 8]
         self.select_row, self.select_col = 0, 0 # int, int
         self.selecting = False # bool
+        self.expanded = False # bool
+        self.history = [[], [], []] # history for each of the 3 keys
         # binding inputs
         self.bind('<Motion>', self.mouse_move)
         self.bind('<Button-1>', self.left_click)
         self.bind('<Key>', self.key_pressed)
         self.bind('<Return>', self.return_key)
-
+        
         # debug
         self.xy = self.canvas.create_text(40, 10, text="(0, 0)")
     
@@ -46,10 +49,10 @@ class App(tk.Tk):
         return 80 * r + 50 + LetterDisplay.WIDTH // 2 
 
     def y_to_row(self, y):
-        return (y - 50) // 120
+        return (y - 50) // 96
     
     def row_to_y(self, c):
-        return 120 * c + 50 + LetterDisplay.HEIGHT // 2
+        return 96 * c + 50 + LetterDisplay.HEIGHT // 2
 
     def left_click(self, event):
         x, y = event.x, event.y
@@ -70,7 +73,7 @@ class App(tk.Tk):
         # esc --> clear selection
         if key == 27: # esc
             self.deselect()
-            # also minimize everything
+            self.minimize()
         # arrow keys --> move selection
         elif key == 37: # left
             col = max(0, self.select_col - 1)
@@ -126,9 +129,74 @@ class App(tk.Tk):
         word = self.get_word()
         if not client.valid_word(word):
             return
-        self.set_row_color(self.select_row, client.get_colors(word))
+        # clear the current row
+        # move all words in history down
+        self.shift_history(int(len(word) == 7) + 2 * int(len(word) == 8))
+        # update history
+        self.history[self.select_row // 2].append(word)
+        # set letters and colors of the next row
+        self.set_row_color(self.select_row + 1, client.get_colors(word))
+        for col, letter in enumerate(word):
+            self.letter_grid[1][col].update_letter(self.canvas, letter)
+    
+    def shift_history(self, key_index):
+        # add new row
+        key_length = self.start_row_length[key_index * 2]
+        history_length = len(self.history[key_index]) + 1
+        self.row_length = [key_length] * (history_length + 1) + [0] * (self.NUM_ROWS - history_length - 1)
+        self.update_display_grid()
+        # iterate through row 2 --> end
+        # update the history
+        for row, word in enumerate(reversed(self.history[key_index])):
+            row = row + 2 # start history at index 2
+            self.set_row_color(row, client.get_colors(word))
+            for col, letter in enumerate(word):
+                self.letter_grid[row][col].update_letter(self.canvas, letter)
+
+    def expand(self, key_index):
+        # find the selected word row and its respective guess history
+        # propagate history (animate)
         
+        # TEMP 
+        # set the visibility of the other words to False
+        self.expanded = True
+        key_length = self.start_row_length[key_index * 2]
+        history_length = len(self.history[key_index])
+        self.row_length = [key_length] * (history_length + 1) + [0] * (self.NUM_ROWS - history_length - 1)
+        self.update_display_grid() # create new empty grid
+        # propagate history with letters
+        for row, word in enumerate(reversed(self.history[key_index])):
+            row = row + 1 # start history at index 1
+            self.set_row_color(row, client.get_colors(word))
+            for col, letter in enumerate(word):
+                self.letter_grid[row][col].update_letter(self.canvas, letter)
+
+    def minimize(self):
+        self.expanded = False
+        # fade out the history
+        # fade in the 2 other words
+        self.row_length = self.start_row_length
+        self.update_display_grid()
+        # set the current letters to the most recent in history
+        for key_index in range(3):
+            if len(self.history[key_index]) == 0:
+                continue
+            # set the word for a row
+            # set the color for the row
+            row = key_index * 2
+            word = self.history[key_index][-1]
+            self.set_row_color(row, client.get_colors(word))
+            for col, letter in enumerate(word):
+                self.letter_grid[row][col].update_letter(self.canvas, letter)
+
     def select(self, row, col):
+        # check if index is selectable
+        if not True:
+            return
+        # expand the row (if not already)
+        if not self.expanded:
+            self.expand(row // 2) # row 0 correspondes to key 0, 2-->1, 4-->2
+        # set selecting to true
         self.selecting = True
         # deselect current selection
         self.letter_grid[self.select_row][self.select_col].deselect(self.canvas)
@@ -144,6 +212,10 @@ class App(tk.Tk):
     def mouse_move(self, event):
         x, y = event.x, event.y
         self.canvas.itemconfig(self.xy, text=f"({x},{y})")
+    
+    def update_display_grid(self):
+        self.canvas.delete('all')
+        self.display()
 
     def display(self):
         """ Create the start screen"""
@@ -162,6 +234,7 @@ class App(tk.Tk):
             [LetterDisplay(self.col_to_x(c), self.row_to_y(r)) 
             for c in range(self.NUM_COLS)]
             for r in range(self.NUM_ROWS)]
+        
         # set the visibilty of the start screen
         letter_iter = it.chain(*self.letter_grid)
         visibility_iter = it.chain.from_iterable([True] * l + [False] * (self.NUM_COLS-l) for l in self.row_length)

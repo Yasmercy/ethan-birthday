@@ -14,7 +14,7 @@ class LetterDisplay:
         self.selected = False # bool
         
         # [outline, filled_square, letter]
-        self.widget_ids = []
+        self.widget_ids = [0, 0, 0]
     
     def corners(self):
         """ Returns list[tuple[int, int]] """
@@ -36,12 +36,10 @@ class LetterDisplay:
 
         # create the letter textbox
         letter_id = canvas.create_text(*self.center, text=self.letter, font=("Helvetica", "25"))
+        
+        # update widget_ids
+        self.widget_ids = [outline_id, square_id, letter_id]
 
-        # append to widget_ids
-        self.widget_ids.append(outline_id)
-        self.widget_ids.append(square_id)
-        self.widget_ids.append(letter_id)
-    
     def hide_display(self, canvas):
         for id in self.widget_ids:
             canvas.delete(id)
