@@ -133,7 +133,7 @@ class App(tk.Tk):
         # move all words in history down
         self.shift_history(int(len(word) == 7) + 2 * int(len(word) == 8))
         # update history
-        self.history[self.select_row // 2].append(word)
+        self.history[int(len(word) == 7) + 2 * int(len(word) == 8)].append(word)
         # set letters and colors of the next row
         self.set_row_color(self.select_row + 1, client.get_colors(word))
         for col, letter in enumerate(word):
