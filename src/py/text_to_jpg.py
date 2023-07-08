@@ -36,9 +36,15 @@ def create_jpg(filename, text, color, font):
     # close window
     root.destroy()
 
-if __name__ == "__main__":
+def create_AZ():
     for char in range(ord('A'), ord('Z') + 1):
         char = chr(char)
         for color in ("gray", "yellow", "green"):
             create_jpg(f"data/font/{char}_{color}.jpg", f"{char}", color, ("consolas", 25))
 
+def create_empty():
+    create_jpg("data/font/EMPTY_white.jpg", " ", "white", ("consolas", 25))
+
+if __name__ == "__main__":
+    create_AZ()
+    create_empty()

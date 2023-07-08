@@ -1,8 +1,9 @@
 from enum import Enum
+import json
 
-# TODO: write json deserializer
+# TODO write a decoder and encoder
 class Color(Enum):
-    GRAY = 0
-    YELLOW = 1
-    GREEN = 2
-
+    GRAY = "GRAY"
+    YELLOW = "YELLOW"
+    GREEN = "GREEN"
+    WHITE = "WHITE"

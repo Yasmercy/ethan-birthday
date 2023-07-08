@@ -1,113 +1,143 @@
-from color import Color
+import animations
 import itertools as it
-import math
-import time 
+import tkinter as tk
+from color import Color
+from PIL import ImageTk, Image
 
-class LetterDisplay:
-    WIDTH = 80  # px
-    HEIGHT = 80 # px
+FONT_DIRECTORY = "data/font"
+
+class Letter:
+    SIZE = 70  # px
+    BORDER_WIDTH = 3 # px
+    SELECTED_COLOR = 'orange'
+    DESELECTED_COLOR = 'black'
     
-    def __init__(self, x, y, *, visibility = False, letter = ""):
-        self.visibility = visibility # bool
-        self.letter = letter # str
-        self.center = (x, y) # tuple[int, int]
-        self.selected = False # bool
+    __slots__ = {
+        "root",
+        "center",
+        "color",
+        "image",
+        "visibility",
+        "selected",
+        "widget_ids",
+        "widget_img",
+        "letter"
+    }
+
+    def __init__(self, root, x, y, *, letter=" ", visibility=False, color=Color.WHITE, selected=False):
+        self.root = root
+        self.center = x, y
+
+        # initialize with all defaults
+        self.widget_ids = []
+        self.color = Color.WHITE
+        self.letter = " "
+        self.visibility = False
+        self.selected = False
         
-        # [outline, filled_square, letter]
-        self.widget_ids = [0, 0, 0]
+        # call the designated setters
+        self.set_image()
+        self.set_visibility(visibility)
+        self.set_selected(selected)
+        self.set_color(color)
+        self.set_letter(letter)
+
+    # could use a decorator for the setters to reduce boilerplate
+    def set_visibility(self, visibility):
+        if visibility == self.visibility:
+            return
+        
+        self.visibility = visibility
+        if self.visibility:
+            self.show_display(self.root.canvas) 
+        else:
+            self.hide_display(self.root.canvas)
+    
+    def set_selected(self, selected):
+        if selected == self.selected:
+            return
+
+        self.selected = selected
+        if self.selected:
+            self.select(self.root.canvas)
+        else:
+            self.deselect(self.root.canvas)
+    
+    def set_color(self, color, *, update=True):
+        if color == self.color:
+            return
+
+        self.color = color
+        if not update:
+            return
+
+        self.set_image()
+        if self.visibility:
+            self.update_display(self.root.canvas)
+    
+    def set_letter(self, letter, *, update=True):
+        if letter == self.letter:
+            return
+
+        self.letter = letter
+        if not update:
+            return
+
+        self.set_image()
+        if self.visibility:
+            self.update_display(self.root.canvas)
+
+    # helpers
+    def set_image(self):
+        img = Image.open(self.get_filename())
+        img.resize(
+            (self.SIZE - self.BORDER_WIDTH, self.SIZE - self.BORDER_WIDTH), 
+            Image.ANTIALIAS
+        )
+        self.image = ImageTk.PhotoImage(img)
     
     def corners(self):
-        """ Returns list[tuple[int, int]] """
-        cx, cy = self.center # center x, y
-        x0, x1 = cx - self.WIDTH / 2, cx + self.WIDTH / 2
-        y0, y1 = cy - self.HEIGHT / 2, cy + self.HEIGHT / 2
+        (cx, cy), w, h = self.center, self.SIZE // 2, self.SIZE // 2
         return [
-            (x0, y0), 
-            (x1, y0), 
-            (x1, y1), 
-            (x0, y1)
+            (cx - w, cy - h),
+            (cx + w, cy - h),
+            (cx + w, cy + h),
+            (cx - w, cy + h)
         ]
 
-    def show_display(self, canvas):
-        # create the grid
-        corners = self.corners()
-        outline_id = canvas.create_line(*it.chain(*corners), *corners[0])
-        square_id = canvas.create_rectangle(*corners[0], *corners[2], width=0) # no border
+    def select(self, canvas):
+        """ set the border color """
+        # precondition: visibility = true
+        canvas.itemconfig(self.widget_ids[0], fill=self.SELECTED_COLOR)
 
-        # create the letter textbox
-        letter_id = canvas.create_text(*self.center, text=self.letter, font=("Helvetica", "25"))
-        
-        # update widget_ids
-        self.widget_ids = [outline_id, square_id, letter_id]
+    def deselect(self, canvas):
+        """ reset the border color """
+        # precondition: visibility = true
+        canvas.itemconfig(self.widget_ids[0], fill=self.DESELECTED_COLOR)
+
+    def show_display(self, canvas):
+        """
+        Sets the widget_ids and the image instance variables
+        widgets: grid, square, image
+        """
+        corners = self.corners()
+        grid_id = canvas.create_line(*it.chain.from_iterable(corners), *corners[0])
+        square_id = canvas.create_rectangle(*corners[0], *corners[2], width=0) # no border
+        self.widget_ids = [grid_id, square_id]
+        self.widget_img = tk.Label(canvas, image=self.image)
+        self.widget_img.place(x=self.center[0], y=self.center[1], anchor='center')
 
     def hide_display(self, canvas):
         for id in self.widget_ids:
             canvas.delete(id)
+        self.widget_img.destroy()
 
-    def toggle_display(self, canvas):
-        self.visibility = not self.visibility
-        if self.visibility:
-            self.show_display(canvas)
-        else:
-            self.hide_display(canvas)
+    def update_display(self, _):
+        self.widget_img.config(image=self.image)
 
-    def select(self, canvas):
-        self.selected = True
-        if not self.visibility:
-            return
-        # move border to front
-        canvas.tag_raise(self.widget_ids[0], 'all')
-        # highlight border
-        canvas.itemconfig(self.widget_ids[0], fill="orange")
+    def get_filename(self):
+        letter_name = self.letter
+        if letter_name == " ":
+            letter_name = "empty"
+        return f"{FONT_DIRECTORY}/{letter_name.upper()}_{self.color.value.lower()}.jpg"
 
-    def deselect(self, canvas):
-        canvas.itemconfig(self.widget_ids[0], fill="black")
-        self.selected = False
-
-    def update_letter(self, canvas, letter):
-        self.letter = letter
-        canvas.itemconfig(self.widget_ids[2], text=letter)
-        # bring letter to front again
-        canvas.tag_raise(self.widget_ids[2], 'all')
-    
-    def map_color(self, color):
-        if isinstance(color, str):
-            return color
-        return ["gray", "yellow", "green"][color.value]
-    
-    def animate(self, timestep, total_time, f):
-        start = time.perf_counter()
-        counter = 0
-        num_steps = total_time / timestep
-        while counter <= num_steps:
-            t = counter * timestep
-            if (time.perf_counter() - start) > t: 
-                f(t)
-                counter += 1
-
-    def update_height(self, root, duration, t):
-        # t is a parametric variable from [0, duration]
-        scalar = 0.5 * math.cos(t * math.pi / duration) + 0.5
-        new_height = self.HEIGHT * scalar
-        
-        cx, cy = self.center
-        x0, x1 = cx - self.WIDTH // 2, cx + self.WIDTH // 2
-        y0, y1 = cy - new_height // 2, cy + new_height // 2
-        root.canvas.coords(self.widget_ids[0], x0, y0, x1, y0, x1, y1, x0, y1, x0, y0)
-        root.canvas.coords(self.widget_ids[1], x0, y0, x1, y1)
-        root.canvas.itemconfig(self.widget_ids[2], font=('Helvetica', str(int(25 * new_height / self.HEIGHT))))
-        root.update()
-
-    def set_color(self, root, color):
-        # shrinking letter
-        self.animate(0.0125, 0.25, lambda t: self.update_height(root, 0.25, t))
-        # setting color of new letter
-        self.color = self.map_color(color)
-        root.canvas.itemconfig(self.widget_ids[1], fill=self.color)
-        # expanding letter
-        self.animate(0.0125, 0.25, lambda t: self.update_height(root, 0.25, t + 0.25))
-        # bring letter to front again
-        root.canvas.tag_raise(self.widget_ids[2], 'all')
-
-    def reset_color(self, root, color):
-        self.set_color(root, "white")
