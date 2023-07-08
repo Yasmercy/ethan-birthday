@@ -1,8 +1,13 @@
 import tkinter as tk
 import itertools as it
+import functools as ft
+import operator
 import animations
 import client
+from color import Color
 from letter import Letter
+
+# fix valid word: length must match the key index's length
 
 class App(tk.Tk):
     # class variables
@@ -31,14 +36,21 @@ class App(tk.Tk):
         self.selected_row, self.selected_col, self.key_index = [self.UNSET_INDEX] * 3
         self.selecting = False
         self.expanded = False
-        # self.history = [[] for _ in range(self.NUM_KEYS)]
-        print("WARNING: MANUALLY ADDED HISTORY")
-        self.history = [["happy"], ["belated"], ["birthday"]]
+        self.history = [[] for _ in range(self.NUM_KEYS)]
 
         # binding inputs
         self.bind('<Button-1>', self.left_click)
         self.bind('<Key>', self.key_pressed)
         self.bind('<Return>', self.return_key)
+        
+        # debug
+        self.bind('<Motion>', self.mouse_move)
+        self.xy = self.canvas.create_text(40, 10, text="(0, 0)")
+
+    def mouse_move(self, event):
+        x, y = event.x_root - self.winfo_rootx(), event.y_root - self.winfo_rooty()
+        row, col = self.y_to_row(y), self.x_to_col(x)
+        self.canvas.itemconfig(self.xy, text=f"({x},{y}) ({row},{col})")
 
     def left_click(self, event):
         x, y = event.x_root - self.winfo_rootx(), event.y_root - self.winfo_rooty()
@@ -49,12 +61,66 @@ class App(tk.Tk):
         
         # check if over arrow
 
-    def return_key(self, _):
-        pass
-
     def key_pressed(self, event):
-        pass
-    
+        if not self.selecting:
+            return
+        key = event.keycode
+
+        # define the methods
+        def esc():
+            self.deselect()
+            self.minimize()
+        def left():
+            if self.selected_col == 0:
+                return
+            self.select(self.selected_row, self.selected_col - 1)
+        def right():
+            if self.selected_col == self.row_lengths[self.selected_row] - 1:
+                return
+            self.select(self.selected_row, self.selected_col + 1)
+        def alphabet():
+            char = chr(key)
+            self.letter_grid[self.selected_row][self.selected_col].set_color(Color.GRAY, update=False)
+            self.letter_grid[self.selected_row][self.selected_col].set_letter(char)
+            right()
+        def backspace():
+            self.letter_grid[self.selected_row][self.selected_col].set_color(Color.WHITE, update=False)
+            self.letter_grid[self.selected_row][self.selected_col].set_letter(" ")
+            left()
+        
+        # map methods to keycode
+        if   key == 27: esc()
+        elif key == 37: left()
+        elif key == 39: right()
+        elif key == 8: backspace()
+        elif ord('A') <= key <= ord('Z'):
+            alphabet()
+
+    def return_key(self, _):
+        if not self.selecting:
+            return
+        
+        word = self.get_word(self.selected_row)
+        if not client.valid_word(word):
+            return
+        
+        # if word is correct
+        # skip the moving history
+        
+        # update display
+        self.set_history_row_lengths(add=1)
+        self.update_display()
+        # move everything down
+        self.propagate_history(offset=1) # fast
+        # update history
+        self.history[self.key_index].append(word)
+        self.propagate_history(N=1) # slow
+        # delete row 0
+        word_length = len(word)
+        self.set_row(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST)
+        # set selected to column 0
+        self.select(0, 0)
+
     # visual methods
     def expand(self):
         """ 
@@ -66,19 +132,14 @@ class App(tk.Tk):
             return
         self.expanded = True
         
-        # local variables
-        key_row = self.key_index_to_row(self.key_index)
-        key_length = self.DEFAULT_ROW_LENGTHS[key_row]
-        history = self.history[key_row]
-        history_length = len(history)
-        
-        # update the grid display with new lengths
-        # this also clears old displays
-        self.row_lengths = [key_length] * (history_length + 1) \
-                + [0] * (self.NUM_ROWS - history_length - 1)
+        self.set_history_row_lengths()
         self.update_display()
         self.propagate_history()
-        
+        self.select(0, 0)
+        # delete row 0
+        word_length = self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(self.key_index)]
+        self.set_row(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST)
+
     def minimize(self):
         # already done
         if not self.expanded:
@@ -88,7 +149,7 @@ class App(tk.Tk):
         # update the grid display to original lengths
         # this clears the expanded display
         self.row_lengths = self.DEFAULT_ROW_LENGTHS
-        self.update_display_grid()
+        self.update_display()
         
         # unset the key_index instance variable
         self.key_index = self.UNSET_INDEX
@@ -102,6 +163,7 @@ class App(tk.Tk):
             word = history[-1]
             self.set_row(
                 self.key_index_to_row(key_index),
+                word,
                 client.get_colors(word),
                 speed=animations.Mode.FAST
             )
@@ -118,7 +180,8 @@ class App(tk.Tk):
         self.selected_row, self.selected_col = row, col
         # sets the instance variables
         self.selecting = True
-        self.key_index = self.row_to_key_index(row)
+        if not self.expanded:
+            self.key_index = self.row_to_key_index(row)
 
     def deselect(self):
         """
@@ -129,7 +192,9 @@ class App(tk.Tk):
         self.letter_grid[row][col].set_selected(False)
         # unsets the instance variables
         self.selecting = False
-        self.selected_row, self.selected_col, self.key_index = [self.UNSET_INDEX] * 3
+        self.selected_row, self.selected_col = self.UNSET_INDEX, self.UNSET_INDEX
+        if not self.expanded:
+            self.key_index = self.UNSET_INDEX
 
     # display
     def init_display(self):
@@ -160,7 +225,7 @@ class App(tk.Tk):
     # helper methods
     def get_word(self, row):
         row = self.letter_grid[self.selected_row]
-        return ft.reduce(operator.add, (letter.letter for letter in row)).lower()
+        return ft.reduce(operator.add, (letter.letter for letter in row)).strip().lower()
 
     def set_row(self, row, word, colors, speed):
         # precondition: the row should be of equal length to colors
@@ -169,17 +234,33 @@ class App(tk.Tk):
             letter.set_letter(char, update=False)
             letter.set_color(color)
 
-    def propagate_history(self, speed=animations.Mode.FAST, offset=0):
+    def propagate_history(self, speed=animations.Mode.FAST, offset=0, N=None):
         # precondition: the update_display method should have been called
         # and the visibility in the grid should be correctly set
+        if N is None: N = self.NUM_ROWS # default for N
         history = self.history[self.key_index]
-        for row, guess in enumerate(reversed(history)):
+        for row, guess in zip(range(N), reversed(history)):
+            # fix this when len(history) > N
+            print("FIX ON APP.PY LINE 242")
+            # history starts at index 1 (offset is for shifting down)
             self.set_row(
-                row + 1 + offset, # history starts at index 1 (offset is for shifting down)
+                row + 1 + offset,                 
                 guess,
                 client.get_colors(guess),
                 speed
             )
+    
+    def set_history_row_lengths(self, *, add=0):
+        # local variables
+        key_row = self.key_index_to_row(self.key_index)
+        key_length = self.DEFAULT_ROW_LENGTHS[key_row]
+        history = self.history[self.key_index]
+        history_length = len(history)
+        
+        # update the grid display with new lengths
+        # this also clears old displays
+        self.row_lengths = [key_length] * (history_length + 1 + add) \
+                + [0] * (self.NUM_ROWS - history_length - 1 - add)
 
     def is_selectable(self, row, col):
         # an index is selectable if the row is selectable

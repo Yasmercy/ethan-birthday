@@ -90,8 +90,8 @@ class Letter:
     # helpers
     def set_image(self):
         img = Image.open(self.get_filename())
-        img.resize(
-            (self.SIZE - self.BORDER_WIDTH, self.SIZE - self.BORDER_WIDTH), 
+        img = img.resize(
+            (self.SIZE - 2 * self.BORDER_WIDTH, self.SIZE - 2 * self.BORDER_WIDTH), 
             Image.ANTIALIAS
         )
         self.image = ImageTk.PhotoImage(img)
