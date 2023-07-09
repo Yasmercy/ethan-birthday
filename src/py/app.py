@@ -7,8 +7,17 @@ import client
 from color import Color
 from letter import Letter
 
-# fix valid word: length must match the key index's length
-
+"""
+TODO:
+    - fix selection in expanded mode
+    - completed words should not be editable
+    - return back to homescreen after complete
+    - letter flipping
+    - emphasis on letter inputs
+    - UX --> delete should delete the last letter if not selected and is the most right
+    -    --> maybe start with selecting the (0, 0) (expanded mode)
+    - UI --> update to IRIS
+"""
 class App(tk.Tk):
     # class variables
     NUM_ROWS = 6
@@ -95,17 +104,26 @@ class App(tk.Tk):
         elif key == 8: backspace()
         elif ord('A') <= key <= ord('Z'):
             alphabet()
+    
+    def valid_word(self, word, key_index):
+        row = self.key_index_to_row(key_index)
+        return len(word) == self.DEFAULT_ROW_LENGTHS[row] \
+                and client.valid_word(word)
 
     def return_key(self, _):
         if not self.selecting:
             return
         
         word = self.get_word(self.selected_row)
-        if not client.valid_word(word):
+        if not self.valid_word(word, self.key_index):
             return
         
         # if word is correct
         # skip the moving history
+        if self.correct_guess(word):
+            self.history[self.key_index].append(word)
+            self.propagate_history(N=1, offset=-1) # slow
+            return
         
         # update display
         self.set_history_row_lengths(add=1)
@@ -137,8 +155,12 @@ class App(tk.Tk):
         self.propagate_history()
         self.select(0, 0)
         # delete row 0
-        word_length = self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(self.key_index)]
-        self.set_row(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST)
+        self.set_row(
+            0, 
+            self.get_empty_word(self.key_index),
+            self.get_empty_colors(self.key_index),
+            animations.Mode.FAST
+        )
 
     def minimize(self):
         # already done
@@ -157,14 +179,16 @@ class App(tk.Tk):
         # propagate the keys with the most recent in history
         for key_index, history in enumerate(self.history):
             # if the history is empty, leave as blank
-            if not history:
-                continue
-            # sets the row to its last guess
-            word = history[-1]
+            # otherwise set it as the most recent guess
+            word = self.get_empty_word(key_index)
+            colors = self.get_empty_colors(key_index)
+            if history: 
+                word = history[-1]
+                colors = client.get_colors(word)
             self.set_row(
                 self.key_index_to_row(key_index),
                 word,
-                client.get_colors(word),
+                colors,
                 speed=animations.Mode.FAST
             )
 
@@ -231,17 +255,14 @@ class App(tk.Tk):
         # precondition: the row should be of equal length to colors
         for col, (char, color) in enumerate(zip(word, colors)):
             letter = self.letter_grid[row][col]
-            letter.set_letter(char, update=False)
-            letter.set_color(color)
+            letter.set_letter_color(char, color)
 
     def propagate_history(self, speed=animations.Mode.FAST, offset=0, N=None):
         # precondition: the update_display method should have been called
         # and the visibility in the grid should be correctly set
-        if N is None: N = self.NUM_ROWS # default for N
+        if N is None: N = self.NUM_ROWS - 1 - offset # default for N
         history = self.history[self.key_index]
         for row, guess in zip(range(N), reversed(history)):
-            # fix this when len(history) > N
-            print("FIX ON APP.PY LINE 242")
             # history starts at index 1 (offset is for shifting down)
             self.set_row(
                 row + 1 + offset,                 
@@ -293,6 +314,27 @@ class App(tk.Tk):
 
     def is_visible(self, row, col):
         return col < self.row_lengths[row]
+    
+    def get_empty_word(self, key_index):
+        word_length = self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(key_index)]
+        return " " * word_length
+
+    def get_empty_colors(self, key_index):
+        word_length = self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(key_index)]
+        return [Color.WHITE] * word_length
+    
+    def set_empty_word(self, row, key_index, speed):
+        self.set_row(
+            row,
+            self.get_empty_word(key_index),
+            self.get_empty_colors(key_index),
+            speed
+        )
+    
+    def correct_guess(self, guess):
+        # precondition: word is valid
+        colors = client.get_colors(guess)
+        return colors == [Color.GREEN] * len(colors)
 
 if __name__ == "__main__":
     App().run()

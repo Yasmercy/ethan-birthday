@@ -52,7 +52,7 @@ class Letter:
             self.show_display(self.root.canvas) 
         else:
             self.hide_display(self.root.canvas)
-    
+
     def set_selected(self, selected):
         if selected == self.selected:
             return
@@ -63,6 +63,16 @@ class Letter:
         else:
             self.deselect(self.root.canvas)
     
+    def set_letter_color(self, letter, color):
+        if color == self.color and letter == self.letter:
+            return
+
+        self.color = color
+        self.letter = letter
+        self.set_image()
+        if self.visibility:
+            self.update_display(self.root.canvas)
+
     def set_color(self, color, *, update=True):
         if color == self.color:
             return
