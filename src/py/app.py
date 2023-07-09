@@ -2,6 +2,7 @@ import tkinter as tk
 import itertools as it
 import functools as ft
 import operator
+import time
 import animations
 import client
 from color import Color
@@ -89,12 +90,16 @@ class App(tk.Tk):
             self.select(self.selected_row, self.selected_col + 1)
         def alphabet():
             char = chr(key)
-            self.letter_grid[self.selected_row][self.selected_col].set_color(Color.GRAY, update=False)
-            self.letter_grid[self.selected_row][self.selected_col].set_letter(char)
+            letter = self.letter_grid[self.selected_row][self.selected_col]
+            letter.set_color(Color.GRAY, update=False)
+            letter.set_letter(char)
+            ani = animations.letter_emphasis(letter, animations.Mode.FAST, time.perf_counter())
+            animations.play_animation(ani)
             right()
         def backspace():
-            self.letter_grid[self.selected_row][self.selected_col].set_color(Color.WHITE, update=False)
-            self.letter_grid[self.selected_row][self.selected_col].set_letter(" ")
+            letter = self.letter_grid[self.selected_row][self.selected_col]
+            letter.set_color(Color.WHITE, update=False)
+            letter.set_letter(" ")
             left()
         
         # map methods to keycode
@@ -107,8 +112,7 @@ class App(tk.Tk):
     
     def valid_word(self, word, key_index):
         row = self.key_index_to_row(key_index)
-        return len(word) == self.DEFAULT_ROW_LENGTHS[row] \
-                and client.valid_word(word)
+        return len(word) == self.DEFAULT_ROW_LENGTHS[row] and client.valid_word(word)
 
     def return_key(self, _):
         if not self.selecting:
@@ -129,10 +133,10 @@ class App(tk.Tk):
         self.set_history_row_lengths(add=1)
         self.update_display()
         # move everything down
-        self.propagate_history(offset=1) # fast
+        self.propagate_history(offset=1, speed=animations.Mode.FAST)
         # update history
         self.history[self.key_index].append(word)
-        self.propagate_history(N=1) # slow
+        self.propagate_history(N=1, speed=animations.Mode.SLOW) 
         # delete row 0
         word_length = len(word)
         self.set_row(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST)
@@ -152,14 +156,15 @@ class App(tk.Tk):
         
         self.set_history_row_lengths()
         self.update_display()
-        self.propagate_history()
+        if self.history[self.key_index]:
+            self.propagate_history(speed=animations.Mode.FAST)
         self.select(0, 0)
         # delete row 0
         self.set_row(
             0, 
             self.get_empty_word(self.key_index),
             self.get_empty_colors(self.key_index),
-            animations.Mode.FAST
+            animations.Mode.INSTANT
         )
 
     def minimize(self):
@@ -253,9 +258,11 @@ class App(tk.Tk):
 
     def set_row(self, row, word, colors, speed):
         # precondition: the row should be of equal length to colors
-        for col, (char, color) in enumerate(zip(word, colors)):
-            letter = self.letter_grid[row][col]
-            letter.set_letter_color(char, color)
+        ani = animations.flip_letter_row(self.letter_grid[row], colors, word, speed, time.perf_counter(), 0.2)
+        animations.play_animation(ani)
+        # for col, (char, color) in enumerate(zip(word, colors)):
+        #     letter = self.letter_grid[row][col]
+        #     letter.set_letter_color(char, color)
 
     def propagate_history(self, speed=animations.Mode.FAST, offset=0, N=None):
         # precondition: the update_display method should have been called
