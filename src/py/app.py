@@ -5,32 +5,35 @@ import operator
 import time
 import animations
 import client
+from enum import Enum, auto
+from aux import *
 from color import Color
 from letter import Letter
 from animations import Mode
 
 """
 TODO:
-    - UI --> home screen navigation:
-                - use arrow keys to navigate between words
-                - use enter to expand and esc to minimize (or arrow)
-            update home screen
     - BUG -> instant animations are not instant
 """
+
+class Screen(Enum):
+    HOME = auto()
+    GAME = auto()
+    END = auto()
 
 class App(tk.Tk):
     # class variables
     NUM_ROWS = 6
     NUM_COLS = 8
     NUM_KEYS = 3
+    KEY_LENGTHS = [5, 7, 8] 
     WIDTH = 720
     HEIGHT = 640
     UNSET_INDEX = -1
     LETTER_HOR_MARGIN = 20
     LETTER_VER_MARGIN = 24
     SIDE_MARGIN = 50
-    DEFAULT_ROW_LENGTHS = [5, 0, 7, 0, 8, 0]
-
+    
     def __init__(self):
         super().__init__()
 
@@ -39,20 +42,31 @@ class App(tk.Tk):
         self.canvas.pack()
         
         # instantiate variables
+        self.key_index = 0 # this is how many keys the player has guessed
         self.letter_grid = [[None] * self.NUM_COLS for _ in range(self.NUM_ROWS)]
-        self.row_lengths = self.DEFAULT_ROW_LENGTHS
+        self.row_lengths = self.home_row_lengths()
         self.selectable_rows = [bool(length) for length in self.row_lengths]
-        self.selected_row, self.key_index = (self.UNSET_INDEX, self.UNSET_INDEX)
-        self.selecting = False
-        self.expanded = False
-        self.editing = False
         self.history = [[] for _ in range(self.NUM_KEYS)]
+        # state variables
+        self.screen = Screen.HOME
+        # during home screen, this is the row that can be expanded
+        # during home screen, you can select and expand
+        # during game screen, you can edit and minimize
+        # during end screen, you can do nothing :D
+        self.expanded_key_index = 0
+        # this is the key that the player is current looking at
+        self.selected_row = self.UNSET_INDEX
+        # this is the row that is edited on during game screen
 
         # binding inputs
-        self.bind('<Button-1>', self.left_click)
         self.bind('<Key>', self.key_pressed)
         self.bind('<Return>', self.return_key)
         
+        # create display
+        self.init_display()
+        # start with row 0 selected and expanded
+        self.select(0)
+        self.expand(0)
         # debug
         self.bind('<Motion>', self.mouse_move)
         self.xy = self.canvas.create_text(40, 10, text="(0, 0)")
@@ -62,26 +76,20 @@ class App(tk.Tk):
         row, col = self.y_to_row(y), self.x_to_col(x)
         self.canvas.itemconfig(self.xy, text=f"({x},{y}) ({row},{col})")
 
-    def left_click(self, event):
-        x, y = event.x_root - self.winfo_rootx(), event.y_root - self.winfo_rooty()
-        col, row = self.x_to_col(x), self.y_to_row(y)
-        if self.is_selectable(row, col):
-            self.select(row) # this sets the key_index
-            self.expand()
-        
-        # check if over arrow
-
     def key_pressed(self, event):
-        if not self.selecting:
-            return
         key = event.keycode
 
         # define the methods
         def esc():
-            self.deselect()
+            if self.screen is not Screen.GAME:
+                return
             self.minimize()
+            self.select(0)
+
         def alphabet():
-            if not self.editing: return
+            if not self.can_edit():
+                return
+            
             char = chr(key)
             col = self.rightmost_column(self.selected_row)
             if col < 0: print("WARNING SELECTING INVISIBLE ROW")
@@ -89,23 +97,55 @@ class App(tk.Tk):
             letter.set_letter_color(char, Color.GRAY)
             ani = animations.letter_emphasis(letter, Mode.FAST, time.perf_counter())
             animations.play_animation(ani)
+
         def backspace():
-            col = self.rightmost_column(self.selected_row) - 1
-            if col < 0:
+            if not self.can_edit():
                 return
+
+            col = self.rightmost_column(self.selected_row) - 1
+            if col < 0: return
             letter = self.letter_grid[self.selected_row][col]
             letter.set_letter_color(" ", Color.WHITE)
+
+        def down():
+            if self.screen is not Screen.HOME:
+                return
+
+            # change selected row
+            self.selected_row = fit_bounds(self.selected_row + 1, 0, self.NUM_KEYS - 1)
+            # update selection
+            self.select(self.selected_row)
+            self.update_selection_circle(self.selected_row)
+        def up():
+            if self.screen is not Screen.HOME:
+                return
+
+            # change selected row
+            self.selected_row = fit_bounds(self.selected_row - 1, 0, self.NUM_KEYS - 1)
+            # update selection
+            self.select(self.selected_row)
+            self.update_selection_circle(self.selected_row)
         
         # map methods to keycode
         if   key == 27: esc()
         elif key == 8: backspace()
+        elif key == 40: down()
+        elif key == 38: up()
         elif ord('A') <= key <= ord('Z'):
             alphabet()
     
     def return_key(self, _):
-        if not self.selecting:
+        if self.screen is Screen.HOME:
+            # expand the current selected_row
+            expanded_row = self.row_to_key_index(self.selected_row)
+            self.expand(expanded_row) # this sets self.expanded_key_index
+            self.select(0)
             return
         
+        # limit to game screen actions
+        if not self.can_edit():
+            return
+
         word = self.get_word(self.selected_row)
         if not self.valid_word(word, self.key_index):
             return
@@ -116,6 +156,7 @@ class App(tk.Tk):
             self.history[self.key_index].append(word)
             self.propagate_history(N=1, offset=-1) # slow
             # wait a second then return back to home screen
+            self.key_index += 1
             time.sleep(1)
             self.minimize()
             return
@@ -133,26 +174,28 @@ class App(tk.Tk):
         self.set_row(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST)
 
     # visual methods
-    def expand(self):
+    def expand(self, index):
         """ 
         Precondition: self.key_index is set
         Propagates the history of the key_index
         """
         # already done
-        if self.expanded:
+        if self.screen is Screen.GAME:
             return
-        self.expanded = True
-        self.editing = True 
+        self.screen = Screen.GAME
+        self.expanded_key_index = index
         # if the most recent guess was correct
-        history = self.history[self.key_index]
+        history = self.history[index]
         if history and self.correct_guess(history[-1]):
             self.set_history_row_lengths(add=-1)
             self.update_display()
             self.propagate_history(speed=animations.Mode.FAST, offset=-1)
-            self.editing = False
             return
-    
+        
+        # move editing cursor to row 0
         self.selectable_rows = [True] + [False] * (self.NUM_ROWS - 1)
+        self.select(0)
+        self.update_selection_circle(0)
         self.set_history_row_lengths()
         self.update_display()
         if self.history[self.key_index]:
@@ -168,22 +211,18 @@ class App(tk.Tk):
 
     def minimize(self):
         # already done
-        if not self.expanded:
+        if self.screen is Screen.HOME:
             return
-        self.expanded = False
-        self.editing = False
-
+        self.screen = Screen.HOME
         # update the grid display to original lengths
         # this clears the expanded display
+        self.expanded_key_index = self.UNSET_INDEX
         self.row_lengths = self.home_row_lengths()
-        self.update_display()
-        
-        # unset the key_index instance variable
         self.selectable_rows = [bool(length) for length in self.row_lengths]
-        self.key_index = self.UNSET_INDEX
+        self.update_display()
 
         # propagate the keys with the most recent in history
-        for key_index, history in enumerate(self.history):
+        for key_index, history in zip(range(self.key_index + 1), self.history):
             # if the history is empty, leave as blank
             # otherwise set it as the most recent guess
             word = self.get_empty_word(key_index)
@@ -209,9 +248,6 @@ class App(tk.Tk):
         col = self.rightmost_column(row)
         # sets the instance variables
         self.selected_row = row
-        self.selecting = True
-        if not self.expanded:
-            self.key_index = self.row_to_key_index(row)
 
     def deselect(self):
         """
@@ -221,10 +257,7 @@ class App(tk.Tk):
         row = self.selected_row
         col = self.rightmost_column(row)
         # unsets the instance variables
-        self.selecting = False
-        self.selected_row, self.selected_col = self.UNSET_INDEX, self.UNSET_INDEX
-        if not self.expanded:
-            self.key_index = self.UNSET_INDEX
+        self.selected_row = self.UNSET_INDEX
 
     # display
     def init_display(self):
@@ -236,6 +269,9 @@ class App(tk.Tk):
                 self.row_to_y(row),
                 visibility=self.is_visible(row, col)
             )
+        # create the yellow circle to the side of the selected_row
+        self.circle = self.canvas.create_oval(0, 0, 0, 0, fill="yellow")
+        self.update_selection_circle(0)
 
     def update_display(self):
         for row, col in it.product(range(self.NUM_ROWS), range(self.NUM_COLS)):
@@ -243,8 +279,6 @@ class App(tk.Tk):
     
     # driver
     def run(self):
-        self.init_display()
-
         try:
             while self.state():
                 self.update()
@@ -269,7 +303,7 @@ class App(tk.Tk):
         # precondition: the update_display method should have been called
         # and the visibility in the grid should be correctly set
         if N is None: N = self.NUM_ROWS - 1 - offset # default for N
-        history = self.history[self.key_index]
+        history = self.history[self.expanded_key_index]
         for row, guess in zip(range(N), reversed(history)):
             # history starts at index 1 (offset is for shifting down)
             self.set_row(
@@ -281,9 +315,9 @@ class App(tk.Tk):
     
     def set_history_row_lengths(self, *, add=0):
         # local variables
-        key_row = self.key_index_to_row(self.key_index)
-        key_length = self.DEFAULT_ROW_LENGTHS[key_row]
-        history = self.history[self.key_index]
+        key_index = self.row_to_key_index(self.selected_row)
+        key_length = self.key_length(self.expanded_key_index)
+        history = self.history[self.expanded_key_index]
         history_length = len(history)
         
         # update the grid display with new lengths
@@ -315,21 +349,19 @@ class App(tk.Tk):
         return y_top + letter_size // 2
     
     def row_to_key_index(self, row):
-        return row // 2
+        return row
 
     def key_index_to_row(self, key_index):
-        return key_index * 2
+        return key_index
 
     def is_visible(self, row, col):
         return col < self.row_lengths[row]
     
     def get_empty_word(self, key_index):
-        word_length = self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(key_index)]
-        return " " * word_length
+        return " " * self.key_length(key_index)
 
     def get_empty_colors(self, key_index):
-        word_length = self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(key_index)]
-        return [Color.WHITE] * word_length
+        return [Color.WHITE] * self.key_length(key_index)
     
     def set_empty_word(self, row, key_index, speed):
         self.set_row(
@@ -355,10 +387,22 @@ class App(tk.Tk):
         return min(has_text) 
     
     def key_length(self, key_index):
-        return self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(key_index)]
+        return self.KEY_LENGTHS[self.key_index_to_row(key_index)]
     
     def home_row_lengths(self):
-        return self.DEFAULT_ROW_LENGTHS
+        return [length for index, length in enumerate(self.KEY_LENGTHS) if index <= self.key_index] \
+            + [0] * (self.NUM_ROWS - self.key_index)
+        
+    def update_selection_circle(self, row):
+        r = 10
+        x = 25
+        y = self.row_to_y(row)
+        self.canvas.coords(self.circle, x-r, y-r, x+r, y+r)
+    
+    def can_edit(self):
+        return self.screen is Screen.GAME \
+                and self.key_index == self.expanded_key_index \
+                and self.selected_row == 0
 
 if __name__ == "__main__":
     App().run()
