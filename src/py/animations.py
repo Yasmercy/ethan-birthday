@@ -13,13 +13,13 @@ class Mode(Enum):
 
 def time_settings(mode):
     """ Returns the duration and step_time for the mode """
-    FRAMES = 30
+    FRAMES = 45
     if mode is Mode.FAST:
         return (2 ** -1, 1/FRAMES)
     elif mode is Mode.SLOW:
         return (2 ** 0, 1/FRAMES)
     elif mode is Mode.INSTANT:
-        return (0, 1)
+        return (0, 1/FRAMES)
     print("WARNING: RECEIVED UNKNOWN MODE", mode)
 
 class Animation:

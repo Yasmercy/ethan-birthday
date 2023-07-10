@@ -38,7 +38,6 @@ class Letter:
         # call the designated setters
         self.set_image()
         self.set_visibility(visibility)
-        self.set_selected(selected)
         self.set_color(color)
         self.set_letter(letter)
 
@@ -53,16 +52,6 @@ class Letter:
         else:
             self.hide_display(self.root.canvas)
 
-    def set_selected(self, selected):
-        if selected == self.selected:
-            return
-
-        self.selected = selected
-        if self.selected:
-            self.select(self.root.canvas)
-        else:
-            self.deselect(self.root.canvas)
-    
     def set_letter_color(self, letter, color):
         if color == self.color and letter == self.letter:
             return
@@ -97,6 +86,9 @@ class Letter:
         if self.visibility:
             self.update_display(self.root.canvas)
     
+    def has_text(self):
+        return self.visibility and not self.letter.strip() == ""
+
     # changing display (for animations)
     def v_stretch(self, scale):
         """ note: this resets the horizontal back to normal """
@@ -157,16 +149,6 @@ class Letter:
     
     def corners(self):
         return corners(*self.center, self.SIZE // 2, self.SIZE // 2)
-
-    def select(self, canvas):
-        """ set the border color """
-        # precondition: visibility = true
-        canvas.itemconfig(self.grid_id, fill=self.SELECTED_COLOR)
-
-    def deselect(self, canvas):
-        """ reset the border color """
-        # precondition: visibility = true
-        canvas.itemconfig(self.grid_id, fill=self.DESELECTED_COLOR)
 
     def show_display(self, canvas):
         """

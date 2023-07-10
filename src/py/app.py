@@ -7,18 +7,17 @@ import animations
 import client
 from color import Color
 from letter import Letter
+from animations import Mode
 
 """
 TODO:
-    - fix selection in expanded mode
-    - completed words should not be editable
-    - return back to homescreen after complete
-    - letter flipping
-    - emphasis on letter inputs
-    - UX --> delete should delete the last letter if not selected and is the most right
-    -    --> maybe start with selecting the (0, 0) (expanded mode)
-    - UI --> update to IRIS
+    - UI --> home screen navigation:
+                - use arrow keys to navigate between words
+                - use enter to expand and esc to minimize (or arrow)
+            update home screen
+    - BUG -> instant animations are not instant
 """
+
 class App(tk.Tk):
     # class variables
     NUM_ROWS = 6
@@ -43,9 +42,10 @@ class App(tk.Tk):
         self.letter_grid = [[None] * self.NUM_COLS for _ in range(self.NUM_ROWS)]
         self.row_lengths = self.DEFAULT_ROW_LENGTHS
         self.selectable_rows = [bool(length) for length in self.row_lengths]
-        self.selected_row, self.selected_col, self.key_index = [self.UNSET_INDEX] * 3
+        self.selected_row, self.key_index = (self.UNSET_INDEX, self.UNSET_INDEX)
         self.selecting = False
         self.expanded = False
+        self.editing = False
         self.history = [[] for _ in range(self.NUM_KEYS)]
 
         # binding inputs
@@ -66,7 +66,7 @@ class App(tk.Tk):
         x, y = event.x_root - self.winfo_rootx(), event.y_root - self.winfo_rooty()
         col, row = self.x_to_col(x), self.y_to_row(y)
         if self.is_selectable(row, col):
-            self.select(row, col) # this sets the key_index
+            self.select(row) # this sets the key_index
             self.expand()
         
         # check if over arrow
@@ -80,40 +80,28 @@ class App(tk.Tk):
         def esc():
             self.deselect()
             self.minimize()
-        def left():
-            if self.selected_col == 0:
-                return
-            self.select(self.selected_row, self.selected_col - 1)
-        def right():
-            if self.selected_col == self.row_lengths[self.selected_row] - 1:
-                return
-            self.select(self.selected_row, self.selected_col + 1)
         def alphabet():
+            if not self.editing: return
             char = chr(key)
-            letter = self.letter_grid[self.selected_row][self.selected_col]
-            letter.set_color(Color.GRAY, update=False)
-            letter.set_letter(char)
-            ani = animations.letter_emphasis(letter, animations.Mode.FAST, time.perf_counter())
+            col = self.rightmost_column(self.selected_row)
+            if col < 0: print("WARNING SELECTING INVISIBLE ROW")
+            letter = self.letter_grid[self.selected_row][col]
+            letter.set_letter_color(char, Color.GRAY)
+            ani = animations.letter_emphasis(letter, Mode.FAST, time.perf_counter())
             animations.play_animation(ani)
-            right()
         def backspace():
-            letter = self.letter_grid[self.selected_row][self.selected_col]
-            letter.set_color(Color.WHITE, update=False)
-            letter.set_letter(" ")
-            left()
+            col = self.rightmost_column(self.selected_row) - 1
+            if col < 0:
+                return
+            letter = self.letter_grid[self.selected_row][col]
+            letter.set_letter_color(" ", Color.WHITE)
         
         # map methods to keycode
         if   key == 27: esc()
-        elif key == 37: left()
-        elif key == 39: right()
         elif key == 8: backspace()
         elif ord('A') <= key <= ord('Z'):
             alphabet()
     
-    def valid_word(self, word, key_index):
-        row = self.key_index_to_row(key_index)
-        return len(word) == self.DEFAULT_ROW_LENGTHS[row] and client.valid_word(word)
-
     def return_key(self, _):
         if not self.selecting:
             return
@@ -127,6 +115,9 @@ class App(tk.Tk):
         if self.correct_guess(word):
             self.history[self.key_index].append(word)
             self.propagate_history(N=1, offset=-1) # slow
+            # wait a second then return back to home screen
+            time.sleep(1)
+            self.minimize()
             return
         
         # update display
@@ -140,8 +131,6 @@ class App(tk.Tk):
         # delete row 0
         word_length = len(word)
         self.set_row(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST)
-        # set selected to column 0
-        self.select(0, 0)
 
     # visual methods
     def expand(self):
@@ -153,12 +142,22 @@ class App(tk.Tk):
         if self.expanded:
             return
         self.expanded = True
-        
+        self.editing = True 
+        # if the most recent guess was correct
+        history = self.history[self.key_index]
+        if history and self.correct_guess(history[-1]):
+            self.set_history_row_lengths(add=-1)
+            self.update_display()
+            self.propagate_history(speed=animations.Mode.FAST, offset=-1)
+            self.editing = False
+            return
+    
+        self.selectable_rows = [True] + [False] * (self.NUM_ROWS - 1)
         self.set_history_row_lengths()
         self.update_display()
         if self.history[self.key_index]:
             self.propagate_history(speed=animations.Mode.FAST)
-        self.select(0, 0)
+        
         # delete row 0
         self.set_row(
             0, 
@@ -172,13 +171,15 @@ class App(tk.Tk):
         if not self.expanded:
             return
         self.expanded = False
+        self.editing = False
 
         # update the grid display to original lengths
         # this clears the expanded display
-        self.row_lengths = self.DEFAULT_ROW_LENGTHS
+        self.row_lengths = self.home_row_lengths()
         self.update_display()
         
         # unset the key_index instance variable
+        self.selectable_rows = [bool(length) for length in self.row_lengths]
         self.key_index = self.UNSET_INDEX
 
         # propagate the keys with the most recent in history
@@ -197,7 +198,7 @@ class App(tk.Tk):
                 speed=animations.Mode.FAST
             )
 
-    def select(self, row, col):
+    def select(self, row):
         """ 
         Precondition: row and col is selectable
         Sets the selecting and key_index instance variables
@@ -205,9 +206,9 @@ class App(tk.Tk):
         """
         # move the current selected to row, col
         self.deselect()
-        self.letter_grid[row][col].set_selected(True)
-        self.selected_row, self.selected_col = row, col
+        col = self.rightmost_column(row)
         # sets the instance variables
+        self.selected_row = row
         self.selecting = True
         if not self.expanded:
             self.key_index = self.row_to_key_index(row)
@@ -217,8 +218,8 @@ class App(tk.Tk):
         Removes the letter selection at the current selected_row and col
         Sets selecting to False
         """
-        row, col = self.selected_row, self.selected_col
-        self.letter_grid[row][col].set_selected(False)
+        row = self.selected_row
+        col = self.rightmost_column(row)
         # unsets the instance variables
         self.selecting = False
         self.selected_row, self.selected_col = self.UNSET_INDEX, self.UNSET_INDEX
@@ -338,10 +339,26 @@ class App(tk.Tk):
             speed
         )
     
+    def valid_word(self, word, key_index):
+        return len(word) == self.key_length(key_index) and client.valid_word(word)
+
     def correct_guess(self, guess):
         # precondition: word is valid
         colors = client.get_colors(guess)
         return colors == [Color.GREEN] * len(colors)
+    
+    def rightmost_column(self, row):
+        """ Returns the first visible column in the row that has no text """
+        num_cols = len(self.letter_grid[row])
+        has_text = [col if not letter.has_text() else num_cols - 1
+                    for col, letter in enumerate(self.letter_grid[row])]
+        return min(has_text) 
+    
+    def key_length(self, key_index):
+        return self.DEFAULT_ROW_LENGTHS[self.key_index_to_row(key_index)]
+    
+    def home_row_lengths(self):
+        return self.DEFAULT_ROW_LENGTHS
 
 if __name__ == "__main__":
     App().run()
