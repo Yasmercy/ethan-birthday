@@ -14,6 +14,12 @@ from animations import Mode
 """
 TODO:
     - BUG -> instant animations are not instant
+    - change order of animations:
+    - update display should always create empty letters
+    - reimplement with new animation changes:
+        - play_sequential (wait for previous to start)
+        - play_wave (fixed delay in between)
+        - play_simultaneous (no delay wave)
 """
 
 class Screen(Enum):
@@ -275,6 +281,7 @@ class App(tk.Tk):
 
     def update_display(self):
         for row, col in it.product(range(self.NUM_ROWS), range(self.NUM_COLS)):
+            # self.letter_grid[row][col].set_letter_color(" ", Color.WHITE)
             self.letter_grid[row][col].set_visibility(self.is_visible(row, col))
     
     # driver
@@ -295,23 +302,18 @@ class App(tk.Tk):
         # precondition: the row should be of equal length to colors
         ani = animations.flip_letter_row(self.letter_grid[row], colors, word, speed, time.perf_counter(), 0.2)
         animations.play_animation(ani)
-        # for col, (char, color) in enumerate(zip(word, colors)):
-        #     letter = self.letter_grid[row][col]
-        #     letter.set_letter_color(char, color)
 
     def propagate_history(self, speed=animations.Mode.FAST, offset=0, N=None):
         # precondition: the update_display method should have been called
         # and the visibility in the grid should be correctly set
         if N is None: N = self.NUM_ROWS - 1 - offset # default for N
         history = self.history[self.expanded_key_index]
-        for row, guess in zip(range(N), reversed(history)):
-            # history starts at index 1 (offset is for shifting down)
-            self.set_row(
-                row + 1 + offset,                 
-                guess,
-                client.get_colors(guess),
-                speed
-            )
+        
+        letters_rows = [self.letter_grid[row + 1 + offset] for row in range(N)]
+        words = list(reversed(history))
+        colors_rows = [client.get_colors(guess) for guess in words]
+        ani = animations.flip_letter_grid(letters_rows, colors_rows, words, speed, time.perf_counter(), 0.3, 0.3)
+        animations.play_animation(ani)
     
     def set_history_row_lengths(self, *, add=0):
         # local variables

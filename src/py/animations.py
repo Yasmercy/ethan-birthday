@@ -48,6 +48,12 @@ class Animation:
         self.key_frames = [(start_time + (step * index), self.func) for index in range(length)]
         self.key_frames.append((end_time, lambda _: self.func(end_time))) # ensure the final state 
         return self
+    
+    def delay(self, delay):
+        self.key_frames = [
+            (time + delay, func)
+            for time, delay in self.key_frames
+        ]
 
     def get_func(self):
         return self.key_frames[self.cur_frame][1]
@@ -65,6 +71,19 @@ def play_animation(animation, sleep=0.005):
     while not animation.completed():
         animation(time.perf_counter())
         time.sleep(sleep)
+
+def play_sequential(*animations, **kwargs):
+    for animation in animations:
+        play_animation(animation, **kwargs)
+
+def play_wave(*animations, delay=1):
+    # create animation group
+    animations = [animation.delay(delay) for animation in animations]
+    batch = create_animation_batch(*animations)
+    play_animation(batch)
+
+def play_simultaneous(*animations):
+    play_wave(*animations, delay=0)
 
 # individual animation factory functions
 def letter_emphasis(letter, mode, start_time):
@@ -140,7 +159,6 @@ def flip_letter_in(letter, mode, start_time):
         size_multiplier = math.cos(math.pi * (t - 1)) * 0.5 + 0.5
         letter.v_stretch(size_multiplier)
     
-    ani = Animation(func=func).set_keyframes(start_time=start_time, end_time=start_time + duration, step=step)
     return Animation(func=func).set_keyframes(start_time=start_time, end_time=start_time + duration, step=step)
 
 def change_letter(letter, color, char, time):
