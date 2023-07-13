@@ -15,9 +15,9 @@ def time_settings(mode):
     """ Returns the duration and step_time for the mode """
     FRAMES = 45
     if mode is Mode.FAST:
-        return (2 ** -1, 1/FRAMES)
+        return (2 ** -2, 1/FRAMES)
     elif mode is Mode.SLOW:
-        return (2 ** 0, 1/FRAMES)
+        return (2 ** -1, 1/FRAMES)
     elif mode is Mode.INSTANT:
         return (0, 1/FRAMES)
     print("WARNING: RECEIVED UNKNOWN MODE", mode)
@@ -52,8 +52,9 @@ class Animation:
     def delay(self, delay):
         self.key_frames = [
             (time + delay, func)
-            for time, delay in self.key_frames
+            for time, func in self.key_frames
         ]
+        return self
 
     def get_func(self):
         return self.key_frames[self.cur_frame][1]
@@ -105,14 +106,16 @@ def letter_emphasis(letter, mode, start_time):
     
     return Animation(func=func).set_keyframes(start_time=start_time, end_time=end_time, step=step)
 
-def flip_letter_row(letters, colors, word, mode, start_time, wave_delay):
+def flip_letter_row(letters, colors, word, mode, start_time):
     """ Flips a list of letters with a desginated delay in between """
+    wave_delay, _ = time_settings(mode) 
     animations = [flip_letter(letter, color, char, mode, start_time + wave_delay * index)
                   for index, (letter, color, char) in enumerate(zip(letters, colors, word))]
     return create_animation_batch(*animations)
 
-def flip_letter_grid(letters_rows, colors_rows, words, mode, start_time, col_delay, row_delay):
-    animations = [flip_letter_row(letters, colors, word, mode, start_time + index * row_delay, col_delay)
+def flip_letter_grid(letters_rows, colors_rows, words, mode, start_time):
+    row_delay, _ = time_settings(mode)
+    animations = [flip_letter_row(letters, colors, word, mode, start_time + index * row_delay)
                    for index, (letters, colors, word) in enumerate(zip(letters_rows, colors_rows, words))]
     return create_animation_batch(*animations)
 

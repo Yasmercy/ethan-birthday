@@ -112,6 +112,8 @@ class App(tk.Tk):
             if col < 0: return
             letter = self.letter_grid[self.selected_row][col]
             letter.set_letter_color(" ", Color.WHITE)
+            ani = animations.letter_emphasis(letter, Mode.FAST, time.perf_counter())
+            animations.play_animation(ani)
 
         def down():
             if self.screen is not Screen.HOME:
@@ -160,24 +162,29 @@ class App(tk.Tk):
         # skip the moving history
         if self.correct_guess(word):
             self.history[self.key_index].append(word)
-            self.propagate_history(N=1, offset=-1) # slow
+            animations.play_animation(self.propagate_history_ani(N=1, offset=-1)) # slow
             # wait a second then return back to home screen
             self.key_index += 1
             time.sleep(1)
             self.minimize()
             return
         
+        # animations
+        anis = []
         # update display
         self.set_history_row_lengths(add=1)
         self.update_display()
         # move everything down
-        self.propagate_history(offset=1, speed=animations.Mode.FAST)
+        anis.append(self.propagate_history_ani(offset=1, speed=animations.Mode.FAST))
         # update history
         self.history[self.key_index].append(word)
-        self.propagate_history(N=1, speed=animations.Mode.SLOW) 
+        anis.append(self.propagate_history_ani(N=1, speed=animations.Mode.SLOW)) 
         # delete row 0
         word_length = len(word)
-        self.set_row(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST)
+        anis.append(self.set_row_ani(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST))
+
+        # play animations
+        animations.play_simultaneous(*anis)
 
     # visual methods
     def expand(self, index):
@@ -195,7 +202,8 @@ class App(tk.Tk):
         if history and self.correct_guess(history[-1]):
             self.set_history_row_lengths(add=-1)
             self.update_display()
-            self.propagate_history(speed=animations.Mode.FAST, offset=-1)
+            ani = self.propagate_history_ani(speed=animations.Mode.FAST, offset=-1)
+            animations.play_animation(ani)
             return
         
         # move editing cursor to row 0
@@ -204,16 +212,16 @@ class App(tk.Tk):
         self.update_selection_circle(0)
         self.set_history_row_lengths()
         self.update_display()
+        anis = []
         if self.history[self.key_index]:
-            self.propagate_history(speed=animations.Mode.FAST)
+            anis.append(self.propagate_history_ani(speed=animations.Mode.FAST))
         
         # delete row 0
-        self.set_row(
-            0, 
-            self.get_empty_word(self.key_index),
-            self.get_empty_colors(self.key_index),
-            animations.Mode.INSTANT
-        )
+        anis.append(self.set_empty_word_ani(0, self.key_index, speed=Mode.INSTANT))
+
+        # play
+        print(*anis)
+        animations.play_simultaneous(*anis)
 
     def minimize(self):
         # already done
@@ -228,6 +236,7 @@ class App(tk.Tk):
         self.update_display()
 
         # propagate the keys with the most recent in history
+        anis = []
         for key_index, history in zip(range(self.key_index + 1), self.history):
             # if the history is empty, leave as blank
             # otherwise set it as the most recent guess
@@ -236,12 +245,13 @@ class App(tk.Tk):
             if history: 
                 word = history[-1]
                 colors = client.get_colors(word)
-            self.set_row(
+            anis.append(self.set_row_ani(
                 self.key_index_to_row(key_index),
                 word,
                 colors,
                 speed=animations.Mode.FAST
-            )
+            ))
+        animations.play_simultaneous(*anis)
 
     def select(self, row):
         """ 
@@ -298,12 +308,11 @@ class App(tk.Tk):
         row = self.letter_grid[self.selected_row]
         return ft.reduce(operator.add, (letter.letter for letter in row)).strip().lower()
 
-    def set_row(self, row, word, colors, speed):
+    def set_row_ani(self, row, word, colors, speed):
         # precondition: the row should be of equal length to colors
-        ani = animations.flip_letter_row(self.letter_grid[row], colors, word, speed, time.perf_counter(), 0.2)
-        animations.play_animation(ani)
+        return animations.flip_letter_row(self.letter_grid[row], colors, word, speed, time.perf_counter())
 
-    def propagate_history(self, speed=animations.Mode.FAST, offset=0, N=None):
+    def propagate_history_ani(self, speed=animations.Mode.FAST, offset=0, N=None):
         # precondition: the update_display method should have been called
         # and the visibility in the grid should be correctly set
         if N is None: N = self.NUM_ROWS - 1 - offset # default for N
@@ -312,8 +321,7 @@ class App(tk.Tk):
         letters_rows = [self.letter_grid[row + 1 + offset] for row in range(N)]
         words = list(reversed(history))
         colors_rows = [client.get_colors(guess) for guess in words]
-        ani = animations.flip_letter_grid(letters_rows, colors_rows, words, speed, time.perf_counter(), 0.3, 0.3)
-        animations.play_animation(ani)
+        return animations.flip_letter_grid(letters_rows, colors_rows, words, speed, time.perf_counter())
     
     def set_history_row_lengths(self, *, add=0):
         # local variables
@@ -365,8 +373,8 @@ class App(tk.Tk):
     def get_empty_colors(self, key_index):
         return [Color.WHITE] * self.key_length(key_index)
     
-    def set_empty_word(self, row, key_index, speed):
-        self.set_row(
+    def set_empty_word_ani(self, row, key_index, speed):
+        return self.set_row_ani(
             row,
             self.get_empty_word(key_index),
             self.get_empty_colors(key_index),
