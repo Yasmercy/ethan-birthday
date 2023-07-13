@@ -13,6 +13,8 @@ from animations import Mode
 
 """
 TODO:
+    - do not allow user actions during animation playing
+
     - BUG -> instant animations are not instant
     - change order of animations:
     - update display should always create empty letters
@@ -96,6 +98,15 @@ class App(tk.Tk):
             if not self.can_edit():
                 return
             
+            # print("FIX line101 app.py")
+            # self.images_cache = [] # so garbage collector does not delete images
+            # # replace ^ with a hashmap that animations manage
+            # filenames = [f"data/fireworks/animation0{frame}.jpg" for frame in range(5)]
+            # label = tk.Label(self.canvas)
+            # label.place(x=300, y=300)
+            # animation = animations.image_animation(filenames, time.perf_counter(), Mode.SLOW, label, self)
+            # animations.play_animation(animation)
+
             char = chr(key)
             col = self.rightmost_column(self.selected_row)
             if col < 0: print("WARNING SELECTING INVISIBLE ROW")
@@ -156,6 +167,13 @@ class App(tk.Tk):
 
         word = self.get_word(self.selected_row)
         if not self.valid_word(word, self.key_index):
+            # vibrate word
+            letters = self.letter_grid[self.selected_row]
+            mode = Mode.FAST
+            start = time.perf_counter()
+            N = self.row_lengths[self.selected_row]
+            anis = [animations.letter_vibrate(letter, mode, start) for letter, _ in zip(letters, range(N))]
+            animations.play_simultaneous(*anis)
             return
         
         # if word is correct
@@ -215,12 +233,9 @@ class App(tk.Tk):
         anis = []
         if self.history[self.key_index]:
             anis.append(self.propagate_history_ani(speed=animations.Mode.FAST))
-        
         # delete row 0
         anis.append(self.set_empty_word_ani(0, self.key_index, speed=Mode.INSTANT))
-
         # play
-        print(*anis)
         animations.play_simultaneous(*anis)
 
     def minimize(self):
@@ -391,7 +406,7 @@ class App(tk.Tk):
     
     def rightmost_column(self, row):
         """ Returns the first visible column in the row that has no text """
-        num_cols = len(self.letter_grid[row])
+        num_cols = self.row_lengths[row]
         has_text = [col if not letter.has_text() else num_cols - 1
                     for col, letter in enumerate(self.letter_grid[row])]
         return min(has_text) 

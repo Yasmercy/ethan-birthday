@@ -2,6 +2,7 @@ from enum import Enum, auto
 from letter import Letter
 from aux import *
 from bisect import bisect_left
+from PIL import Image, ImageTk
 import itertools as it
 import math
 import time
@@ -87,6 +88,37 @@ def play_simultaneous(*animations):
     play_wave(*animations, delay=0)
 
 # individual animation factory functions
+def letter_vibrate(letter, mode, start_time):
+    """ TODO """
+    AMPLITUDE = 0.05
+    duration, step = time_settings(mode)
+    end_time = start_time + duration
+    def func(t):
+        if duration == 0: return
+        t = (t - start_time) / duration
+        size_multipler = math.sin(100 * t) * AMPLITUDE + 1
+        letter.dilate(size_multipler) # updates root
+         
+    return Animation(func=func).set_keyframes(start_time=start_time, end_time=end_time, step=step)
+
+def image_animation(filenames, start_time, mode, root_label, root):
+    """ TODO """
+    duration, _ = time_settings(mode)
+    num_frames = len(filenames)
+    step = duration / num_frames
+    end_time = start_time + duration
+
+    def func(t):
+        frame = int((time.perf_counter() - start_time) / step)
+        filename = filenames[min(frame, num_frames - 1)]
+        img = Image.open(filename)
+        img = ImageTk.PhotoImage(img)
+        root.images_cache.append(img) # so garbage collector
+        root_label.config(image=img)
+        root.update()
+
+    return Animation(func=func).set_keyframes(start_time=start_time, end_time=end_time, step=step)
+
 def letter_emphasis(letter, mode, start_time):
     """ 
     Takes in a letter object and a speed mode
