@@ -78,7 +78,7 @@ class App(tk.Tk):
         # debug
         self.bind('<Motion>', self.mouse_move)
         self.xy = self.canvas.create_text(40, 10, text="(0, 0)")
-
+        
     def mouse_move(self, event):
         x, y = event.x_root - self.winfo_rootx(), event.y_root - self.winfo_rooty()
         row, col = self.y_to_row(y), self.x_to_col(x)
@@ -86,6 +86,16 @@ class App(tk.Tk):
 
     def key_pressed(self, event):
         key = event.keycode
+        self.play_fireworks()
+        # if self.key_index == self.NUM_KEYS:
+        #     print("FIX line101 app.py")
+        #     self.images_cache = [] # so garbage collector does not delete images
+        #     # replace ^ with a hashmap that animations manage
+        #     filenames = [f"data/fireworks/animation0{frame}.jpg" for frame in range(5)]
+        #     label = tk.Label(self.canvas)
+        #     label.place(x=300, y=300)
+        #     animation = animations.image_animation(filenames, time.perf_counter(), Mode.SLOW, label, self)
+        #     animations.play_animation(animation)
 
         # define the methods
         def esc():
@@ -97,18 +107,10 @@ class App(tk.Tk):
         def alphabet():
             if not self.can_edit():
                 return
-            
-            # print("FIX line101 app.py")
-            # self.images_cache = [] # so garbage collector does not delete images
-            # # replace ^ with a hashmap that animations manage
-            # filenames = [f"data/fireworks/animation0{frame}.jpg" for frame in range(5)]
-            # label = tk.Label(self.canvas)
-            # label.place(x=300, y=300)
-            # animation = animations.image_animation(filenames, time.perf_counter(), Mode.SLOW, label, self)
-            # animations.play_animation(animation)
 
             char = chr(key)
             col = self.rightmost_column(self.selected_row)
+            col = min(col, self.row_lengths[self.selected_row] - 1)
             if col < 0: print("WARNING SELECTING INVISIBLE ROW")
             letter = self.letter_grid[self.selected_row][col]
             letter.set_letter_color(char, Color.GRAY)
@@ -289,6 +291,32 @@ class App(tk.Tk):
         col = self.rightmost_column(row)
         # unsets the instance variables
         self.selected_row = self.UNSET_INDEX
+    
+    # end_screen animation
+    def firework_location(self):
+        """ Generates a random location to play a random fireworks animation """
+        print("update app.py 297")
+        return (50, 50)
+
+    def play_fireworks(self):
+        """ Calls play_firework until the stop_fireworks button is stopped """
+        # create button
+        
+        # create label
+        label = tk.Label()
+        x, y = self.firework_location()
+        label.place(x=x, y=y)
+        # create animation
+        filenames = [f"data/fireworks/frame_{i}.jpg" for i in range(62)]
+        self.images_cache = []
+        ani = animations.image_animation(
+            filenames,
+            time.perf_counter(),
+            Mode.VIDEO,
+            label,
+            self
+        )
+        animations.play_animation(ani)
 
     # display
     def init_display(self):
@@ -407,7 +435,7 @@ class App(tk.Tk):
     def rightmost_column(self, row):
         """ Returns the first visible column in the row that has no text """
         num_cols = self.row_lengths[row]
-        has_text = [col if not letter.has_text() else num_cols - 1
+        has_text = [col if not letter.has_text() else num_cols
                     for col, letter in enumerate(self.letter_grid[row])]
         return min(has_text) 
     

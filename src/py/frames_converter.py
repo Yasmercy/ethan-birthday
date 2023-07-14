@@ -1,62 +1,60 @@
 # reads in the file in fireworks and writes it to individual frames
 import cv2
+import numpy as np
 
+# const global variables
 FIREWORKS_FOLDER_PATH = "data/fireworks"
-FIREWORKS_FILENAME = f"{FIREWORKS_FOLDER_PATH}/fireworks.jpg"
-IMAGE_WIDTH = -1
-IMAGE_HEIGHT = -1
-NUM_FRAMES = 5
-NUM_ANIMATIONS = 4
+FIREWORKS_FILENAME = f"{FIREWORKS_FOLDER_PATH}/fireworks.mp4"
+FRAMES_PER_SECOND = 15
+# mutable global variables
+CURRENT_FRAME = 0
 
-def get_animation_y(animation):
-    """ 
-    animation: int
-    returns a (int, int) tuple of the upper and lower bound of the image
-    """
-    
-    lowers = [50, 290, 510, 760]
-    uppers = [220, 460, 680, 930]
-    return lowers[animation], uppers[animation]
+# functions
+def load_video():
+    """ returns a cv2 video object """
+    return cv2.VideoCapture(FIREWORKS_FILENAME)
 
-def get_animation_x(frame):
-    """ 
-    frame: int
-    returns a (int, int) tuple of the left and right bound of the image
-    """
-    
-    lowers = [50, 210, 360, 565, 735, 980]
-    uppers = [210, 360, 520, 725, 895, 1050]
-    return lowers[frame], uppers[frame]
+def black_to_white(frame):
+    """ changes all (0, 0, 0) to (255, 255, 255) """
+    WHITE = (255, 255, 255)
+    BLACK = (25, 25, 25)
+    black = (frame[:, :, 0] + frame[:, :, 1] + frame[:, :, 2]) < sum(BLACK)
+    frame[black] = np.array(WHITE)
+    return frame
 
-def write_animation_frame(animation, frame):
-    """
-    animation_number: int
-    frame: int
-    returns: void
+def write_frame(vid):
+    """ writes the current frame of the video as a jpg"""
+    global CURRENT_FRAME
 
-    writes to a file in the fireworks folder in the format of
-        animation{animation}{frame}.jpg
-    """
-    
-    im = cv2.imread(FIREWORKS_FILENAME)
-    x0, x1, y0, y1 = *get_animation_x(frame), *get_animation_y(animation)
-    cropped = im[y0:y1, x0:x1]
+    # reading the frame
+    _, frame = vid.read()
+    # processing the frame
+    frame = black_to_white(frame)
+    # writing the frame
+    filename = f"{FIREWORKS_FOLDER_PATH}/frame_{CURRENT_FRAME}.jpg"
+    cv2.imwrite(filename, frame)
+    # updating vars
+    CURRENT_FRAME += 1
 
-    outfile = f"{FIREWORKS_FOLDER_PATH}/animation{animation}{frame}.jpg"
-    cv2.imwrite(outfile, cropped)
+def increment_video(vid):
+    """ goes to the next frame in the video """
+    time = CURRENT_FRAME / FRAMES_PER_SECOND
+    video_frame = time * vid.get(cv2.CAP_PROP_FPS)
+    vid.set(cv2.CAP_PROP_POS_FRAMES, video_frame)
 
-# helpers
-def set_image_dimensions():
-    """ Sets the IMAGE_WIDTH/HEIGHT global variables """
-    global IMAGE_WIDTH, IMAGE_HEIGHT
-    IMAGE_WIDTH, IMAGE_HEIGHT, _ = cv2.imread(FIREWORKS_FILENAME).shape
+def write_video():
+    """ writes all the frames of a video """
+    vid = load_video()
+    time = vid.get(cv2.CAP_PROP_FRAME_COUNT) / vid.get(cv2.CAP_PROP_FPS)
+    num_write_frames = int(time * FRAMES_PER_SECOND)
+
+    for _ in range(num_write_frames):
+        write_frame(vid)
+        increment_video(vid)
 
 # driver
 def main():
-    set_image_dimensions()
-    for animation in range(NUM_ANIMATIONS):
-        for frame in range(NUM_FRAMES):
-            write_animation_frame(animation, frame)
+    write_video()
     
 if __name__ == "__main__":
     main()

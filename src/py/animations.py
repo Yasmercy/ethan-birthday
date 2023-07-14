@@ -10,6 +10,7 @@ import time
 class Mode(Enum):
     SLOW = auto()
     FAST = auto()
+    VIDEO = auto()
     INSTANT = auto()
 
 def time_settings(mode):
@@ -21,6 +22,9 @@ def time_settings(mode):
         return (2 ** -1, 1/FRAMES)
     elif mode is Mode.INSTANT:
         return (0, 1/FRAMES)
+    elif mode is Mode.VIDEO:
+        from frames_converter import FRAMES_PER_SECOND
+        return (-1, 1/FRAMES_PER_SECOND)
     print("WARNING: RECEIVED UNKNOWN MODE", mode)
 
 class Animation:
@@ -103,10 +107,9 @@ def letter_vibrate(letter, mode, start_time):
 
 def image_animation(filenames, start_time, mode, root_label, root):
     """ TODO """
-    duration, _ = time_settings(mode)
+    _, step = time_settings(mode)
     num_frames = len(filenames)
-    step = duration / num_frames
-    end_time = start_time + duration
+    end_time = start_time + num_frames * step
 
     def func(t):
         frame = int((time.perf_counter() - start_time) / step)
