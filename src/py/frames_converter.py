@@ -14,24 +14,28 @@ def load_video():
     """ returns a cv2 video object """
     return cv2.VideoCapture(FIREWORKS_FILENAME)
 
-def black_to_white(frame):
+def to_png_format(frame):
     """ changes all (0, 0, 0) to (255, 255, 255) """
-    WHITE = (255, 255, 255)
     BLACK = (25, 25, 25)
-    black = (frame[:, :, 0] + frame[:, :, 1] + frame[:, :, 2]) < sum(BLACK)
-    frame[black] = np.array(WHITE)
+    WHITE = [255, 255, 255]
+    frame = np.array([
+        [[rgb[0], rgb[1], rgb[2], 0] if sum(rgb) < sum(BLACK) else [rgb[0], rgb[1], rgb[2], 0.5]
+         for rgb in row]
+        for row in frame  
+    ])
+    print(frame.shape)
     return frame
 
 def write_frame(vid):
-    """ writes the current frame of the video as a jpg"""
+    """ writes the current frame of the video as a png"""
     global CURRENT_FRAME
 
     # reading the frame
     _, frame = vid.read()
     # processing the frame
-    frame = black_to_white(frame)
+    frame = to_png_format(frame)
     # writing the frame
-    filename = f"{FIREWORKS_FOLDER_PATH}/frame_{CURRENT_FRAME}.jpg"
+    filename = f"{FIREWORKS_FOLDER_PATH}/frame_{CURRENT_FRAME}.png"
     cv2.imwrite(filename, frame)
     # updating vars
     CURRENT_FRAME += 1

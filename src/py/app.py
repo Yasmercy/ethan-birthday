@@ -307,7 +307,7 @@ class App(tk.Tk):
         x, y = self.firework_location()
         label.place(x=x, y=y)
         # create animation
-        filenames = [f"data/fireworks/frame_{i}.jpg" for i in range(62)]
+        filenames = [f"data/fireworks/frame_{i}.png" for i in range(62)]
         self.images_cache = []
         ani = animations.image_animation(
             filenames,
