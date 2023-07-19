@@ -18,8 +18,9 @@ def to_png_format(frame):
     """ changes all (0, 0, 0) to (255, 255, 255) """
     BLACK = (25, 25, 25)
     WHITE = [255, 255, 255]
-    frame = np.array([
-        [[rgb[0], rgb[1], rgb[2], 0] if sum(rgb) < sum(BLACK) else [rgb[0], rgb[1], rgb[2], 0.5]
+    is_not_black = lambda rgb: sum(rgb) >= sum(BLACK)
+    frame = np.array([[
+        [*rgb, 255 * is_not_black(rgb)]
          for rgb in row]
         for row in frame  
     ])
