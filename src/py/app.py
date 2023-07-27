@@ -5,6 +5,7 @@ import operator
 import time
 import animations
 import client
+import random
 from enum import Enum, auto
 from aux import *
 from color import Color
@@ -86,17 +87,9 @@ class App(tk.Tk):
 
     def key_pressed(self, event):
         key = event.keycode
-        self.play_fireworks()
-        # if self.key_index == self.NUM_KEYS:
-        #     print("FIX line101 app.py")
-        #     self.images_cache = [] # so garbage collector does not delete images
-        #     # replace ^ with a hashmap that animations manage
-        #     filenames = [f"data/fireworks/animation0{frame}.jpg" for frame in range(5)]
-        #     label = tk.Label(self.canvas)
-        #     label.place(x=300, y=300)
-        #     animation = animations.image_animation(filenames, time.perf_counter(), Mode.SLOW, label, self)
-        #     animations.play_animation(animation)
-
+        if self.screen is Screen.END:
+            self.play_fireworks()
+            return
         # define the methods
         def esc():
             if self.screen is not Screen.GAME:
@@ -137,6 +130,7 @@ class App(tk.Tk):
             # update selection
             self.select(self.selected_row)
             self.update_selection_circle(self.selected_row)
+
         def up():
             if self.screen is not Screen.HOME:
                 return
@@ -185,8 +179,10 @@ class App(tk.Tk):
             animations.play_animation(self.propagate_history_ani(N=1, offset=-1)) # slow
             # wait a second then return back to home screen
             self.key_index += 1
-            time.sleep(1)
             self.minimize()
+            time.sleep(1)
+            if self.key_index == self.NUM_KEYS:
+                self.play_fireworks()
             return
         
         # animations
@@ -295,28 +291,29 @@ class App(tk.Tk):
     # end_screen animation
     def firework_location(self):
         """ Generates a random location to play a random fireworks animation """
-        print("update app.py 297")
-        return (50, 50)
+        margin = 200
+        return (random.randint(margin, self.WIDTH - margin), 
+                random.randint(margin, self.HEIGHT - margin))
 
     def play_fireworks(self):
         """ Calls play_firework until the stop_fireworks button is stopped """
-        # create button
-        
         # create label
         label = tk.Label()
-        x, y = self.firework_location()
-        label.place(x=x, y=y)
-        # create animation
-        filenames = [f"data/fireworks/frame_{i}.png" for i in range(62)]
-        self.images_cache = []
-        ani = animations.image_animation(
-            filenames,
-            time.perf_counter(),
-            Mode.VIDEO,
-            label,
-            self
-        )
-        animations.play_animation(ani)
+        while True:
+            x, y = self.firework_location()
+            label.place(x=x, y=y)
+            # create animation
+            filenames = [f"data/fireworks/frame_{i}.png" for i in range(62)]
+            self.images_cache = []
+            ani = animations.image_animation(
+                filenames,
+                time.perf_counter(),
+                Mode.VIDEO,
+                label,
+                self
+            )
+            animations.play_animation(ani)
+            time.sleep(0.2)
 
     # display
     def init_display(self):
