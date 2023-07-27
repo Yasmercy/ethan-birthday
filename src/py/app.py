@@ -2,165 +2,340 @@ import tkinter as tk
 import itertools as it
 import functools as ft
 import operator
+import time
+import animations
 import client
+import random
+from enum import Enum, auto
 from aux import *
+from color import Color
+from letter import Letter
+from animations import Mode
 
-# global variable
-# imported conn from client
+"""
+TODO:
+    - do not allow user actions during animation playing
+
+    - BUG -> instant animations are not instant
+    - change order of animations:
+    - update display should always create empty letters
+    - reimplement with new animation changes:
+        - play_sequential (wait for previous to start)
+        - play_wave (fixed delay in between)
+        - play_simultaneous (no delay wave)
+"""
+
+class Screen(Enum):
+    HOME = auto()
+    GAME = auto()
+    END = auto()
 
 class App(tk.Tk):
+    # class variables
     NUM_ROWS = 6
     NUM_COLS = 8
-
+    NUM_KEYS = 3
+    KEY_LENGTHS = [5, 7, 8] 
+    WIDTH = 720
+    HEIGHT = 640
+    UNSET_INDEX = -1
+    LETTER_HOR_MARGIN = 20
+    LETTER_VER_MARGIN = 24
+    SIDE_MARGIN = 50
+    
     def __init__(self):
         super().__init__()
 
-        # display canvas
-        self.canvas = tk.Canvas(self, width=720, height=640)
+        # create canvas
+        self.canvas = tk.Canvas(self, width=self.WIDTH, height=self.HEIGHT)
         self.canvas.pack()
+        
+        # instantiate variables
+        self.key_index = 0 # this is how many keys the player has guessed
+        self.letter_grid = [[None] * self.NUM_COLS for _ in range(self.NUM_ROWS)]
+        self.row_lengths = self.home_row_lengths()
+        self.selectable_rows = [bool(length) for length in self.row_lengths]
+        self.history = [[] for _ in range(self.NUM_KEYS)]
+        # state variables
+        self.screen = Screen.HOME
+        # during home screen, this is the row that can be expanded
+        # during home screen, you can select and expand
+        # during game screen, you can edit and minimize
+        # during end screen, you can do nothing :D
+        self.expanded_key_index = 0
+        # this is the key that the player is current looking at
+        self.selected_row = self.UNSET_INDEX
+        # this is the row that is edited on during game screen
 
-        # instance variables
-        self.letter_grid = ... # 6x8 2d array of letter displays
-        self.visibile_word_rows = [0, 2, 4] # array of row indices from [0, 6)
-        self.row_length = [5, 0, 7, 0, 8, 0] # array of row lengths from [0, 8]
-        self.select_row, self.select_col = 0, 0 # int, int
-        self.selecting = False # bool
         # binding inputs
-        self.bind('<Motion>', self.mouse_move)
-        self.bind('<Button-1>', self.left_click)
         self.bind('<Key>', self.key_pressed)
         self.bind('<Return>', self.return_key)
-
+        
+        # create display
+        self.init_display()
+        # start with row 0 selected and expanded
+        self.select(0)
+        self.expand(0)
         # debug
+        self.bind('<Motion>', self.mouse_move)
         self.xy = self.canvas.create_text(40, 10, text="(0, 0)")
-    
-    def over_visible_row(self, row, col):
-        """ returns a boolean whether the given r, c coordinate is over a visible letter """
-        return col < self.row_length[row]
-    
-    def x_to_col(self, x):
-        return (x - 50) // 80
-    
-    def col_to_x(self, r):
-        return 80 * r + 50 + LetterDisplay.WIDTH // 2 
-
-    def y_to_row(self, y):
-        return (y - 50) // 120
-    
-    def row_to_y(self, c):
-        return 120 * c + 50 + LetterDisplay.HEIGHT // 2
-
-    def left_click(self, event):
-        x, y = event.x, event.y
-        col, row = self.x_to_col(x), self.y_to_row(y)
-
-        # check if in the bounds of a visible row
-        if self.over_visible_row(row, col):
-            self.select(row, col)
-            return
-
-        # check if over the arrrow key
-        # toggle expansion
+        
+    def mouse_move(self, event):
+        x, y = event.x_root - self.winfo_rootx(), event.y_root - self.winfo_rooty()
+        row, col = self.y_to_row(y), self.x_to_col(x)
+        self.canvas.itemconfig(self.xy, text=f"({x},{y}) ({row},{col})")
 
     def key_pressed(self, event):
-        if not self.selecting:
-            return
-
         key = event.keycode
-        # esc --> clear selection
-        if key == 27: # esc
-            self.deselect()
-            # also minimize everything
-        # arrow keys --> move selection
-        elif key == 37: # left
-            col = max(0, self.select_col - 1)
-            self.select(self.select_row, col)
-            self.select_col = col
-        elif key == 38: # up
-            # go to previous visible row
-            row = self.select_row - 1
-            while row >= 0:
-                if self.row_length[row]:
-                    self.select(row, min(self.select_col, self.row_length[row] - 1))
-                    break
-                row -= 1
-        elif key == 39: # right
-            col = min(self.row_length[self.select_row] - 1, self.select_col + 1)
-            self.select(self.select_row, col)
-            self.select_col = col
-        elif key == 40: # down
-            # go to next visible row
-            row = self.select_row + 1
-            while row < self.NUM_ROWS:
-                if self.row_length[row]:
-                    self.select(row, min(self.select_col, self.row_length[row] - 1))
-                    break
-                row += 1
-        # a-z --> enter on select
-        elif ord('A') <= key <= ord('Z'):
-            self.letter_grid[self.select_row][self.select_col].update_letter(self.canvas, chr(key))
-        # delete
-        elif key == 8: # backspace
-            self.letter_grid[self.select_row][self.select_col].update_letter(self.canvas, "")
-    
-    def get_word(self):
-        # return the selected word (does not check for selecting)
-        return ft.reduce(operator.add, (letter.letter for letter in self.letter_grid[self.select_row]))
-
-    def return_key(self, event):
-        # enter --> submit guess (only if word is full)
-        if not self.selecting:
+        if self.screen is Screen.END:
+            self.play_fireworks()
             return
-        word = self.get_word()
-        print(word)
-        print(client.valid_word(word))
-        print(client.get_colors(word))
+        # define the methods
+        def esc():
+            if self.screen is not Screen.GAME:
+                return
+            self.minimize()
+            self.select(0)
 
-    def select(self, row, col):
-        self.selecting = True
-        # deselect current selection
-        self.letter_grid[self.select_row][self.select_col].deselect(self.canvas)
-        # select the word row and put cursor at the letter index
-        self.letter_grid[row][col].select(self.canvas)
-        # update instance vars
-        self.select_row, self.select_col = row, col
-    
-    def deselect(self):
-        self.selecting = False
-        self.letter_grid[self.select_row][self.select_col].deselect(self.canvas)
+        def alphabet():
+            if not self.can_edit():
+                return
 
-    def mouse_move(self, event):
-        x, y = event.x, event.y
-        self.canvas.itemconfig(self.xy, text=f"({x},{y})")
+            char = chr(key)
+            col = self.rightmost_column(self.selected_row)
+            col = min(col, self.row_lengths[self.selected_row] - 1)
+            if col < 0: print("WARNING SELECTING INVISIBLE ROW")
+            letter = self.letter_grid[self.selected_row][col]
+            letter.set_letter_color(char, Color.GRAY)
+            ani = animations.letter_emphasis(letter, Mode.FAST, time.perf_counter())
+            animations.play_animation(ani)
 
-    def display(self):
-        """ Create the start screen"""
+        def backspace():
+            if not self.can_edit():
+                return
+
+            col = self.rightmost_column(self.selected_row) - 1
+            if col < 0: return
+            letter = self.letter_grid[self.selected_row][col]
+            letter.set_letter_color(" ", Color.WHITE)
+            ani = animations.letter_emphasis(letter, Mode.FAST, time.perf_counter())
+            animations.play_animation(ani)
+
+        def down():
+            if self.screen is not Screen.HOME:
+                return
+
+            # change selected row
+            self.selected_row = fit_bounds(self.selected_row + 1, 0, self.NUM_KEYS - 1)
+            # update selection
+            self.select(self.selected_row)
+            self.update_selection_circle(self.selected_row)
+
+        def up():
+            if self.screen is not Screen.HOME:
+                return
+
+            # change selected row
+            self.selected_row = fit_bounds(self.selected_row - 1, 0, self.NUM_KEYS - 1)
+            # update selection
+            self.select(self.selected_row)
+            self.update_selection_circle(self.selected_row)
         
-        # each square is a 100x100
-        # y: 0-50 margin, 50-150 word 1, 170-270 word 2,
-        # 290-390 word 3, 410-510 word 4, 530-630 word 5, 650-750 word 6, 750-800 margin
-        # x: 0-50 margin, 50-150 letter 1, ... 750-850 letter 8, 850-900 margin
-        # start screen only uses words 1, 3, 5
-        # ABOVE IS NOW SCALED BY 0.8
-        # create the 6x8 grid of letters
-        xs = range(self.NUM_ROWS)
-        ys = range(self.NUM_COLS)
-        centers = it.product(xs, ys)
-        self.letter_grid = [
-            [LetterDisplay(self.col_to_x(c), self.row_to_y(r)) 
-            for c in range(self.NUM_COLS)]
-            for r in range(self.NUM_ROWS)]
-        # set the visibilty of the start screen
-        letter_iter = it.chain(*self.letter_grid)
-        visibility_iter = it.chain.from_iterable([True] * l + [False] * (self.NUM_COLS-l) for l in self.row_length)
-        for letter, visibility in zip(letter_iter, visibility_iter):
-            if visibility:
-                letter.toggle_display(self.canvas)
+        # map methods to keycode
+        if   key == 27: esc()
+        elif key == 8: backspace()
+        elif key == 40: down()
+        elif key == 38: up()
+        elif ord('A') <= key <= ord('Z'):
+            alphabet()
+    
+    def return_key(self, _):
+        if self.screen is Screen.HOME:
+            # expand the current selected_row
+            expanded_row = self.row_to_key_index(self.selected_row)
+            self.expand(expanded_row) # this sets self.expanded_key_index
+            self.select(0)
+            return
+        
+        # limit to game screen actions
+        if not self.can_edit():
+            return
 
-        # add the arrow buttons
+        word = self.get_word(self.selected_row)
+        if not self.valid_word(word, self.key_index):
+            # vibrate word
+            letters = self.letter_grid[self.selected_row]
+            mode = Mode.FAST
+            start = time.perf_counter()
+            N = self.row_lengths[self.selected_row]
+            anis = [animations.letter_vibrate(letter, mode, start) for letter, _ in zip(letters, range(N))]
+            animations.play_simultaneous(*anis)
+            return
+        
+        # if word is correct
+        # skip the moving history
+        if self.correct_guess(word):
+            self.history[self.key_index].append(word)
+            animations.play_animation(self.propagate_history_ani(N=1, offset=-1)) # slow
+            # wait a second then return back to home screen
+            self.key_index += 1
+            self.minimize()
+            time.sleep(1)
+            if self.key_index == self.NUM_KEYS:
+                self.play_fireworks()
+            return
+        
+        # animations
+        anis = []
+        # update display
+        self.set_history_row_lengths(add=1)
+        self.update_display()
+        # move everything down
+        anis.append(self.propagate_history_ani(offset=1, speed=animations.Mode.FAST))
+        # update history
+        self.history[self.key_index].append(word)
+        anis.append(self.propagate_history_ani(N=1, speed=animations.Mode.SLOW)) 
+        # delete row 0
+        word_length = len(word)
+        anis.append(self.set_row_ani(0, " " * word_length, [Color.WHITE] * word_length, animations.Mode.FAST))
 
+        # play animations
+        animations.play_simultaneous(*anis)
+
+    # visual methods
+    def expand(self, index):
+        """ 
+        Precondition: self.key_index is set
+        Propagates the history of the key_index
+        """
+        # already done
+        if self.screen is Screen.GAME:
+            return
+        self.screen = Screen.GAME
+        self.expanded_key_index = index
+        # if the most recent guess was correct
+        history = self.history[index]
+        if history and self.correct_guess(history[-1]):
+            self.set_history_row_lengths(add=-1)
+            self.update_display()
+            ani = self.propagate_history_ani(speed=animations.Mode.FAST, offset=-1)
+            animations.play_animation(ani)
+            return
+        
+        # move editing cursor to row 0
+        self.selectable_rows = [True] + [False] * (self.NUM_ROWS - 1)
+        self.select(0)
+        self.update_selection_circle(0)
+        self.set_history_row_lengths()
+        self.update_display()
+        anis = []
+        if self.history[self.key_index]:
+            anis.append(self.propagate_history_ani(speed=animations.Mode.FAST))
+        # delete row 0
+        anis.append(self.set_empty_word_ani(0, self.key_index, speed=Mode.INSTANT))
+        # play
+        animations.play_simultaneous(*anis)
+
+    def minimize(self):
+        # already done
+        if self.screen is Screen.HOME:
+            return
+        self.screen = Screen.HOME
+        # update the grid display to original lengths
+        # this clears the expanded display
+        self.expanded_key_index = self.UNSET_INDEX
+        self.row_lengths = self.home_row_lengths()
+        self.selectable_rows = [bool(length) for length in self.row_lengths]
+        self.update_display()
+
+        # propagate the keys with the most recent in history
+        anis = []
+        for key_index, history in zip(range(self.key_index + 1), self.history):
+            # if the history is empty, leave as blank
+            # otherwise set it as the most recent guess
+            word = self.get_empty_word(key_index)
+            colors = self.get_empty_colors(key_index)
+            if history: 
+                word = history[-1]
+                colors = client.get_colors(word)
+            anis.append(self.set_row_ani(
+                self.key_index_to_row(key_index),
+                word,
+                colors,
+                speed=animations.Mode.FAST
+            ))
+        animations.play_simultaneous(*anis)
+
+    def select(self, row):
+        """ 
+        Precondition: row and col is selectable
+        Sets the selecting and key_index instance variables
+        Moves the selection to row, col
+        """
+        # move the current selected to row, col
+        self.deselect()
+        col = self.rightmost_column(row)
+        # sets the instance variables
+        self.selected_row = row
+
+    def deselect(self):
+        """
+        Removes the letter selection at the current selected_row and col
+        Sets selecting to False
+        """
+        row = self.selected_row
+        col = self.rightmost_column(row)
+        # unsets the instance variables
+        self.selected_row = self.UNSET_INDEX
+    
+    # end_screen animation
+    def firework_location(self):
+        """ Generates a random location to play a random fireworks animation """
+        margin = 200
+        return (random.randint(margin, self.WIDTH - margin), 
+                random.randint(margin, self.HEIGHT - margin))
+
+    def play_fireworks(self):
+        """ Calls play_firework until the stop_fireworks button is stopped """
+        # create label
+        label = tk.Label()
+        while True:
+            x, y = self.firework_location()
+            label.place(x=x, y=y)
+            # create animation
+            filenames = [f"data/fireworks/frame_{i}.png" for i in range(62)]
+            self.images_cache = []
+            ani = animations.image_animation(
+                filenames,
+                time.perf_counter(),
+                Mode.VIDEO,
+                label,
+                self
+            )
+            animations.play_animation(ani)
+            time.sleep(0.2)
+
+    # display
+    def init_display(self):
+        """ create the self.NUM_ROWS x self.NUM_COLS grid array with their visability """
+        for row, col in it.product(range(self.NUM_ROWS), range(self.NUM_COLS)):
+            self.letter_grid[row][col] = Letter(
+                self,
+                self.col_to_x(col),
+                self.row_to_y(row),
+                visibility=self.is_visible(row, col)
+            )
+        # create the yellow circle to the side of the selected_row
+        self.circle = self.canvas.create_oval(0, 0, 0, 0, fill="yellow")
+        self.update_selection_circle(0)
+
+    def update_display(self):
+        for row, col in it.product(range(self.NUM_ROWS), range(self.NUM_COLS)):
+            # self.letter_grid[row][col].set_letter_color(" ", Color.WHITE)
+            self.letter_grid[row][col].set_visibility(self.is_visible(row, col))
+    
+    # driver
     def run(self):
-        self.display()
         try:
             while self.state():
                 self.update()
@@ -168,69 +343,116 @@ class App(tk.Tk):
         except tk.TclError:
             pass
 
-class LetterDisplay:
-    WIDTH = 80  # px
-    HEIGHT = 80 # px
+    # helper methods
+    def get_word(self, row):
+        row = self.letter_grid[self.selected_row]
+        return ft.reduce(operator.add, (letter.letter for letter in row)).strip().lower()
+
+    def set_row_ani(self, row, word, colors, speed):
+        # precondition: the row should be of equal length to colors
+        return animations.flip_letter_row(self.letter_grid[row], colors, word, speed, time.perf_counter())
+
+    def propagate_history_ani(self, speed=animations.Mode.FAST, offset=0, N=None):
+        # precondition: the update_display method should have been called
+        # and the visibility in the grid should be correctly set
+        if N is None: N = self.NUM_ROWS - 1 - offset # default for N
+        history = self.history[self.expanded_key_index]
+        
+        letters_rows = [self.letter_grid[row + 1 + offset] for row in range(N)]
+        words = list(reversed(history))
+        colors_rows = [client.get_colors(guess) for guess in words]
+        return animations.flip_letter_grid(letters_rows, colors_rows, words, speed, time.perf_counter())
     
-    def __init__(self, x, y, *, visibility = False, letter = ""):
-        self.visibility = visibility # bool
-        self.letter = letter # str
-        self.center = (x, y) # tuple[int, int]
-        self.selected = False # bool
+    def set_history_row_lengths(self, *, add=0):
+        # local variables
+        key_index = self.row_to_key_index(self.selected_row)
+        key_length = self.key_length(self.expanded_key_index)
+        history = self.history[self.expanded_key_index]
+        history_length = len(history)
+        
+        # update the grid display with new lengths
+        # this also clears old displays
+        self.row_lengths = [key_length] * (history_length + 1 + add) \
+                + [0] * (self.NUM_ROWS - history_length - 1 - add)
 
-        self.widget_ids = []
+    def is_selectable(self, row, col):
+        # an index is selectable if the row is selectable
+        # and the column is within the row length
+        return row < self.NUM_ROWS and self.selectable_rows[row] and col < self.row_lengths[row] 
+
+    def x_to_col(self, x):
+        letter_size = Letter.SIZE + self.LETTER_HOR_MARGIN // 2
+        return (x - self.SIDE_MARGIN) // letter_size
+
+    def col_to_x(self, col):
+        letter_size = Letter.SIZE + self.LETTER_HOR_MARGIN // 2
+        x_left = letter_size * col + self.SIDE_MARGIN 
+        return x_left + letter_size // 2
+
+    def y_to_row(self, y):
+        letter_size = Letter.SIZE + self.LETTER_VER_MARGIN // 2
+        return (y - self.SIDE_MARGIN) // letter_size
+
+    def row_to_y(self, row):
+        letter_size = Letter.SIZE + self.LETTER_VER_MARGIN // 2
+        y_top = letter_size * row + self.SIDE_MARGIN 
+        return y_top + letter_size // 2
     
-    def corners(self):
-        """ Returns list[tuple[int, int]] """
-        cx, cy = self.center # center x, y
-        x0, x1 = cx - self.WIDTH / 2, cx + self.WIDTH / 2
-        y0, y1 = cy - self.HEIGHT / 2, cy + self.HEIGHT / 2
-        return [
-            (x0, y0), 
-            (x1, y0), 
-            (x1, y1), 
-            (x0, y1)
-        ]
+    def row_to_key_index(self, row):
+        return row
 
-    def show_display(self, canvas):
-        # create the grid
-        corners = self.corners()
-        square_id = canvas.create_line(*it.chain(*corners), *corners[0])
+    def key_index_to_row(self, key_index):
+        return key_index
 
-        # create the letter textbox
-        letter_id = canvas.create_text(*self.center, text=self.letter, font=("Helvetica", "25"))
-
-        # append to widget_ids
-        self.widget_ids.append(square_id)
-        self.widget_ids.append(letter_id)
+    def is_visible(self, row, col):
+        return col < self.row_lengths[row]
     
-    def hide_display(self, canvas):
-        for id in self.widget_ids:
-            canvas.delete(id)
+    def get_empty_word(self, key_index):
+        return " " * self.key_length(key_index)
 
-    def toggle_display(self, canvas):
-        self.visibility = not self.visibility
-        if self.visibility:
-            self.show_display(canvas)
-        else:
-            self.hide_display(canvas)
+    def get_empty_colors(self, key_index):
+        return [Color.WHITE] * self.key_length(key_index)
+    
+    def set_empty_word_ani(self, row, key_index, speed):
+        return self.set_row_ani(
+            row,
+            self.get_empty_word(key_index),
+            self.get_empty_colors(key_index),
+            speed
+        )
+    
+    def valid_word(self, word, key_index):
+        return len(word) == self.key_length(key_index) and client.valid_word(word)
 
-    def select(self, canvas):
-        self.selected = True
-        if not self.visibility:
-            return
-        # move border to front
-        canvas.tag_raise(self.widget_ids[0], 'all')
-        # highlight border
-        canvas.itemconfig(self.widget_ids[0], fill="orange")
-
-    def deselect(self, canvas):
-        canvas.itemconfig(self.widget_ids[0], fill="black")
-        self.selected = False
-
-    def update_letter(self, canvas, letter):
-        self.letter = letter
-        canvas.itemconfig(self.widget_ids[1], text=letter)
+    def correct_guess(self, guess):
+        # precondition: word is valid
+        colors = client.get_colors(guess)
+        return colors == [Color.GREEN] * len(colors)
+    
+    def rightmost_column(self, row):
+        """ Returns the first visible column in the row that has no text """
+        num_cols = self.row_lengths[row]
+        has_text = [col if not letter.has_text() else num_cols
+                    for col, letter in enumerate(self.letter_grid[row])]
+        return min(has_text) 
+    
+    def key_length(self, key_index):
+        return self.KEY_LENGTHS[self.key_index_to_row(key_index)]
+    
+    def home_row_lengths(self):
+        return [length for index, length in enumerate(self.KEY_LENGTHS) if index <= self.key_index] \
+            + [0] * (self.NUM_ROWS - self.key_index)
+        
+    def update_selection_circle(self, row):
+        r = 10
+        x = 25
+        y = self.row_to_y(row)
+        self.canvas.coords(self.circle, x-r, y-r, x+r, y+r)
+    
+    def can_edit(self):
+        return self.screen is Screen.GAME \
+                and self.key_index == self.expanded_key_index \
+                and self.selected_row == 0
 
 if __name__ == "__main__":
     App().run()

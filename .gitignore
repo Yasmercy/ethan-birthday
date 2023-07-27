@@ -1,7 +1,8 @@
 bin/
 CMakeFiles/
 
-*/__pycache__/*
+src/py/__pycache__/
+*.pyc
 CMakeCache.txt
 */CMakeCache.txt
 *.cmake
